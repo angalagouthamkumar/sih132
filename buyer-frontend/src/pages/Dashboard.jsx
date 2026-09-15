@@ -139,14 +139,14 @@ export default function Dashboard() {
             <span className="welcome-badge">Procurement Hub</span>
             <span className="business-tag">
               <Building2 size={13} style={{ marginRight: '4px' }} />
-              {user?.businessName || 'Verified Agribusiness Partner'}
+              {user?.businessName || 'Agribusiness Partner'}
             </span>
           </div>
           <h2 className="welcome-heading">
             Welcome back, {user?.name || 'Procurement Officer'}!
           </h2>
           <p className="welcome-subtext">
-            Source certified harvests directly from Telangana farmers, monitor active procurement contracts, and track grain shipments in transit.
+            Source quality harvests directly from registered farmers, monitor active procurement contracts, and track grain shipments in transit.
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export default function Dashboard() {
           icon={Sprout}
           trend="up"
           trendLabel={`${totalAvailableCount} Lots Ready`}
-          helperText="Verified farmer produce available"
+          helperText="Available farmer produce listings"
         />
         <StatCard
           title="Submitted Bids"
@@ -178,7 +178,7 @@ export default function Dashboard() {
           icon={Handshake}
           trend={submittedOffersCount > 0 ? 'up' : 'stable'}
           trendLabel={`${pendingOffersCount} Pending Response`}
-          helperText="Real-time farmer negotiations"
+          helperText="Direct farmer negotiations"
           accentColor="#235347"
         />
         <StatCard
@@ -280,7 +280,7 @@ export default function Dashboard() {
             <div>
               <h3 className="section-box-title">Direct Procurement Guidelines</h3>
               <p className="section-box-subtitle">
-                How certified buying works on the SIH26132 trading platform.
+                How direct buying works on the SIH26132 trading platform.
               </p>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function Dashboard() {
             <div className="guideline-card">
               <div className="guideline-num">1</div>
               <div className="guideline-content">
-                <h4 className="guideline-title">Browse Verified Harvests</h4>
+                <h4 className="guideline-title">Browse Available Harvests</h4>
                 <p className="guideline-text">
                   Filter by commodity grade, APMC mandi dispatch district, and moisture test specifications.
                 </p>
@@ -309,9 +309,9 @@ export default function Dashboard() {
             <div className="guideline-card">
               <div className="guideline-num">3</div>
               <div className="guideline-content">
-                <h4 className="guideline-title">Secured Escrow Fulfillment</h4>
+                <h4 className="guideline-title">Secure Order Settlement</h4>
                 <p className="guideline-text">
-                  Funds remain safely protected in escrow until truck delivery inspection is confirmed at your warehouse.
+                  Payments and shipments are monitored through verified status updates until delivery is confirmed at your warehouse.
                 </p>
               </div>
             </div>

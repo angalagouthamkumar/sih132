@@ -35,99 +35,123 @@ const Dashboard = () => {
   const formatCurrency = (value) => 
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
 
-  // Simple CSS activity bars data (mocked from stats logically to fit)
-  const userRatio = stats.totalFarmers + stats.totalBuyers > 0 
-    ? (stats.totalFarmers / (stats.totalFarmers + stats.totalBuyers)) * 100 
-    : 50;
+  const totalRegisteredUsers = (stats.totalFarmers || 0) + (stats.totalBuyers || 0);
+  const hasRegisteredUsers = totalRegisteredUsers > 0;
+  const farmerRatio = hasRegisteredUsers 
+    ? ((stats.totalFarmers || 0) / totalRegisteredUsers) * 100 
+    : 0;
+  const buyerRatio = hasRegisteredUsers ? 100 - farmerRatio : 0;
 
   return (
-    <div className="space-y-6 animate-[fadeIn_0.4s_ease-out]">
-      <div>
-        <h2 className="text-2xl font-heading font-bold text-primary-900 mb-1">Platform Overview</h2>
-        <p className="text-text-secondary">Real-time statistics from MongoDB.</p>
+    <div className="admin-page">
+      <div className="page-header-row">
+        <div>
+          <h2 className="admin-page-title">Platform Overview</h2>
+          <p className="admin-page-subtitle">Platform metrics and activity overview.</p>
+        </div>
       </div>
 
       {/* Primary KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="admin-kpi-grid">
         <StatCard 
           title="Total Farmers" 
-          value={stats.totalFarmers} 
+          value={stats.totalFarmers ?? 0} 
           icon="🧑‍🌾" 
           description="Registered farmers"
         />
         <StatCard 
           title="Total Buyers" 
-          value={stats.totalBuyers} 
+          value={stats.totalBuyers ?? 0} 
           icon="🛒" 
           description="Registered buyers"
         />
         <StatCard 
           title="Transaction Value" 
-          value={formatCurrency(stats.transactionValue)} 
+          value={formatCurrency(stats.transactionValue || 0)} 
           icon="💰" 
           description="Paid orders value"
         />
         <StatCard 
           title="Active Orders" 
-          value={stats.activeOrders} 
+          value={stats.activeOrders ?? 0} 
           icon="🚚" 
           description="Confirmed/In-transit"
         />
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card">
-          <h3 className="text-lg font-heading font-semibold text-primary-900 mb-4">Inventory & Trading</h3>
-          <ul className="space-y-4">
-            <li className="flex justify-between items-center">
-              <span className="text-text-secondary">Available Crops</span>
-              <span className="font-semibold text-primary-900 kpi-value">{stats.availableCrops} listings</span>
+      <div className="admin-metrics-grid">
+        <div className="card admin-metric-card">
+          <h3 className="card-section-title">Inventory & Trading</h3>
+          <ul className="metrics-list">
+            <li className="metrics-list-item">
+              <span className="metrics-label">Available Crops</span>
+              <span className="metrics-value">{stats.availableCrops ?? 0} listings</span>
             </li>
-            <li className="flex justify-between items-center">
-              <span className="text-text-secondary">Pending Offers</span>
-              <span className="font-semibold text-primary-900 kpi-value">{stats.pendingOffers} awaiting action</span>
+            <li className="metrics-list-item">
+              <span className="metrics-label">Pending Offers</span>
+              <span className="metrics-value">{stats.pendingOffers ?? 0} awaiting action</span>
             </li>
-            <li className="flex justify-between items-center">
-              <span className="text-text-secondary">Completed Orders</span>
-              <span className="font-semibold text-success kpi-value">{stats.completedOrders} delivered</span>
+            <li className="metrics-list-item">
+              <span className="metrics-label">Completed Orders</span>
+              <span className="metrics-value text-success">{stats.completedOrders ?? 0} delivered</span>
             </li>
           </ul>
         </div>
 
-        <div className="card md:col-span-2">
-          <h3 className="text-lg font-heading font-semibold text-primary-900 mb-4">User Activity Breakdown</h3>
+        <div className="card admin-activity-card">
+          <h3 className="card-section-title">User Activity Breakdown</h3>
           
-          <div className="mb-6">
-            <div className="flex justify-between text-sm mb-2">
-              <span className="font-semibold text-primary-900">Farmers vs Buyers</span>
+          <div className="user-ratio-section">
+            <div className="ratio-header">
+              <span className="ratio-title">Farmers vs Buyers Ratio</span>
+              {hasRegisteredUsers ? (
+                <span className="ratio-percent-info">
+                  {Math.round(farmerRatio)}% Farmers / {Math.round(buyerRatio)}% Buyers
+                </span>
+              ) : (
+                <span className="ratio-percent-info">No users registered yet</span>
+              )}
             </div>
-            <div className="h-4 w-full bg-canvas rounded-full overflow-hidden flex">
-              <div 
-                className="h-full bg-primary-600 transition-all duration-1000 ease-out"
-                style={{ width: `${userRatio}%` }}
-                title="Farmers"
-              ></div>
-              <div 
-                className="h-full bg-primary-400 transition-all duration-1000 ease-out"
-                style={{ width: `${100 - userRatio}%` }}
-                title="Buyers"
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-text-secondary mt-1">
-              <span>Farmers ({stats.totalFarmers})</span>
-              <span>Buyers ({stats.totalBuyers})</span>
-            </div>
+
+            {hasRegisteredUsers ? (
+              <>
+                <div className="ratio-bar-track" role="progressbar" aria-valuenow={Math.round(farmerRatio)} aria-valuemin="0" aria-valuemax="100">
+                  <div 
+                    className="ratio-bar-segment-farmer"
+                    style={{ width: `${farmerRatio}%` }}
+                    title={`Farmers: ${stats.totalFarmers}`}
+                  />
+                  <div 
+                    className="ratio-bar-segment-buyer"
+                    style={{ width: `${buyerRatio}%` }}
+                    title={`Buyers: ${stats.totalBuyers}`}
+                  />
+                </div>
+                <div className="ratio-legend">
+                  <span className="ratio-legend-item farmer">
+                    <span className="legend-dot dot-farmer" /> Farmers ({stats.totalFarmers})
+                  </span>
+                  <span className="ratio-legend-item buyer">
+                    <span className="legend-dot dot-buyer" /> Buyers ({stats.totalBuyers})
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="ratio-empty-notice">
+                <span>0 registered accounts. Ratio bar will update once accounts are created.</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-canvas p-4 rounded-lg">
-              <p className="text-sm text-text-secondary mb-1">Active Accounts</p>
-              <p className="text-2xl font-bold text-success kpi-value">{stats.activeUsers}</p>
+          <div className="mini-stat-grid">
+            <div className="mini-stat-card">
+              <p className="mini-stat-label">Active Accounts</p>
+              <p className="mini-stat-value text-success">{stats.activeUsers ?? 0}</p>
             </div>
-            <div className="bg-canvas p-4 rounded-lg">
-              <p className="text-sm text-text-secondary mb-1">Pending Verifications</p>
-              <p className="text-2xl font-bold text-warning kpi-value">{stats.pendingVerifications}</p>
+            <div className="mini-stat-card">
+              <p className="mini-stat-label">Pending Verifications</p>
+              <p className="mini-stat-value text-warning">{stats.pendingVerifications ?? 0}</p>
             </div>
           </div>
         </div>
@@ -137,3 +161,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

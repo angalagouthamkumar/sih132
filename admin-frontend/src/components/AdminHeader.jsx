@@ -11,33 +11,39 @@ const AdminHeader = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="h-[72px] bg-surface border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-10">
-      <div className="flex items-center gap-4">
-        {/* Hamburger for mobile, although we use bottom nav mainly, it's good for standard layouts */}
+    <header className="admin-header">
+      <div className="admin-header-left">
         <button 
-          className="md:hidden p-2 text-text-secondary hover:text-text"
+          type="button"
+          className="header-menu-btn"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           ☰
         </button>
-        <div className="md:hidden font-heading text-lg font-bold text-primary-900">
-          Admin
-        </div>
+        <span className="admin-header-title">Admin Console</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="hidden md:flex flex-col items-end">
-          <span className="text-sm font-semibold text-text">{user?.name}</span>
-          <span className="text-xs text-text-secondary capitalize">{user?.role}</span>
+      <div className="admin-header-right">
+        <div className="header-user-info" onClick={() => navigate('/profile')}>
+          <span className="header-user-name">{user?.name || 'Administrator'}</span>
+          <span className="header-user-role">{user?.role || 'Admin'}</span>
         </div>
         
-        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-900 font-bold border border-primary-400 cursor-pointer" onClick={() => navigate('/profile')}>
+        <button 
+          type="button"
+          className="header-avatar"
+          onClick={() => navigate('/profile')}
+          title="View profile"
+          aria-label="View admin profile"
+        >
           {user?.name?.charAt(0).toUpperCase() || 'A'}
-        </div>
+        </button>
 
         <button 
+          type="button"
           onClick={handleLogout}
-          className="text-sm font-medium text-danger hover:text-[#9b2c2c] transition-colors"
+          className="header-logout-btn"
         >
           Logout
         </button>
@@ -47,3 +53,4 @@ const AdminHeader = ({ onMenuClick }) => {
 };
 
 export default AdminHeader;
+

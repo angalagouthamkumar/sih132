@@ -83,9 +83,9 @@ export default function Profile() {
               <h3 className="profile-user-name">{user?.name || 'Buyer Account'}</h3>
               <div className="profile-business-line">
                 <Building2 size={14} color="var(--forest-600)" />
-                <span>{user?.businessName || 'Verified Procurement Partner'}</span>
+                <span>{user?.businessName || 'Business Account'}</span>
               </div>
-              <div className="profile-role-badge">Authorized Buyer · Verified Enterprise</div>
+              <div className="profile-role-badge">Authorized Buyer</div>
             </div>
 
             {!editMode && (
@@ -254,11 +254,11 @@ export default function Profile() {
               </li>
               <li className="security-item security-item-ok">
                 <CheckCircle2 size={14} color="var(--success-text)" />
-                <span>No localStorage data stored</span>
+                <span>Session managed securely</span>
               </li>
             </ul>
             <p className="security-note">
-              Passwords are never stored or displayed. Update your password through the secure account settings API available in Module 6.
+              Passwords are managed securely. Contact support to update your account credentials.
             </p>
           </motion.div>
         </div>

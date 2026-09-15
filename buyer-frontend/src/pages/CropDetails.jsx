@@ -279,7 +279,7 @@ export default function CropDetails() {
             <div className="crop-detail-farmer-card">
               <div className="farmer-card-header">
                 <UserCheck size={16} color="var(--forest-600)" />
-                <span className="farmer-card-label">Verified Farmer Details</span>
+                <span className="farmer-card-label">Farmer Details</span>
               </div>
               {farmerName && (
                 <div className="farmer-detail-row">

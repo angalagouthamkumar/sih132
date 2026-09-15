@@ -92,7 +92,7 @@ export default function BuyerSidebar() {
           <div className="user-avatar-sm">{getInitials(user?.name)}</div>
           <div className="user-info-sm">
             <span className="user-name-sm">{user?.name || 'Buyer Account'}</span>
-            <span className="user-role-sm">{user?.location || 'Verified Buyer'}</span>
+            <span className="user-role-sm">{user?.location || 'Buyer'}</span>
           </div>
         </div>
 

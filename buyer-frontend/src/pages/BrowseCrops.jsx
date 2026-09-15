@@ -99,7 +99,7 @@ export default function BrowseCrops() {
   };
 
   if (isLoading) {
-    return <PageLoader message="Loading certified harvest catalog..." />;
+    return <PageLoader message="Loading available harvest listings..." />;
   }
 
   return (

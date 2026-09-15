@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 
-const navItems = [
+export const navItems = [
   { path: '/dashboard',        label: 'Dashboard',         icon: '📊' },
   { path: '/farmers',          label: 'Farmers',           icon: '🧑‍🌾' },
   { path: '/buyers',           label: 'Buyers',            icon: '🛒' },
@@ -14,7 +14,7 @@ const navItems = [
 
 const AdminSidebar = () => {
   return (
-    <div className="admin-sidebar-panel">
+    <aside className="admin-sidebar-panel">
       <div className="sidebar-logo">Admin Portal</div>
 
       <nav className="sidebar-nav">
@@ -38,8 +38,9 @@ const AdminSidebar = () => {
       <div className="sidebar-footer">
         &copy; {new Date().getFullYear()} SIH26132
       </div>
-    </div>
+    </aside>
   );
 };
 
 export default AdminSidebar;
+

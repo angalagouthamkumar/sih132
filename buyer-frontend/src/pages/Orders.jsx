@@ -143,7 +143,7 @@ function OrderCard({ order, onStatusAction, onPaymentAction, expandedId, onToggl
         <div className="order-card-buyer-row">
           <span className="order-buyer-label">Farmer:</span>
           <span className="order-buyer-name">
-            {order.farmer?.name || 'Verified Farmer'}
+            {order.farmer?.name || 'Farmer'}
             {order.farmer?.location && (
               <span className="order-farmer-location"> · {order.farmer.location}</span>
             )}
@@ -555,7 +555,7 @@ export default function Orders() {
                   <div className="confirm-row">
                     <span className="confirm-key">Farmer:</span>
                     <strong className="confirm-val">
-                      {statusModal.order.farmer?.name || 'Verified Farmer'}
+                      {statusModal.order.farmer?.name || 'Farmer'}
                     </strong>
                   </div>
                   <div className="confirm-row">
@@ -666,7 +666,7 @@ export default function Orders() {
                   <div className="confirm-row">
                     <span className="confirm-key">Farmer:</span>
                     <span className="confirm-val">
-                      {paymentModal.order.farmer?.name || 'Verified Farmer'}
+                      {paymentModal.order.farmer?.name || 'Farmer'}
                     </span>
                   </div>
                 </div>

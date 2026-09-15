@@ -122,7 +122,7 @@ export default function Signup() {
           <div className="auth-card-header">
             <h1 className="auth-title">Buyer Registration</h1>
             <p className="auth-subtitle">
-              Register your business entity to source quality produce directly from certified farmers.
+              Register your business entity to source quality produce directly from registered farmers.
             </p>
           </div>
 

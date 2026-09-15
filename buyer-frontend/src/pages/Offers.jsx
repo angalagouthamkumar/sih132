@@ -167,8 +167,8 @@ export default function Offers() {
                 {filteredOffers.map((offer) => {
                   const cropName = offer.crop?.name || 'Crop Listing';
                   const cropVariety = offer.crop?.variety || '';
-                  const farmerName = offer.farmer?.name || 'Verified Farmer';
-                  const farmerLoc = offer.farmer?.location || offer.crop?.location || 'Telangana';
+                  const farmerName = offer.farmer?.name || 'Farmer';
+                  const farmerLoc = offer.farmer?.location || offer.crop?.location || '';
                   const deductions = (Number(offer.transportCost) || 0) + (Number(offer.otherCharges) || 0);
 
                   return (

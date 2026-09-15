@@ -458,7 +458,7 @@ export default function CreateRequirement() {
         ) : myRequirements.length === 0 ? (
           <EmptyState
             title="No Requirements Posted Yet"
-            description="Broadcast your first crop procurement requirement using the form above to connect with verified farmers."
+            description="Broadcast your first crop procurement requirement using the form above to connect with registered farmers."
           />
         ) : (
           <div className="card table-card-container">

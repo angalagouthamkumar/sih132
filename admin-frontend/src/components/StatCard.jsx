@@ -1,30 +1,27 @@
 const StatCard = ({ title, value, icon, description, trend }) => {
   return (
-    <div className="card flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
-      <div className="flex justify-between items-start mb-4">
+    <div className="admin-stat-card">
+      <div className="stat-card-header">
         <div>
-          <p className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">
-            {title}
-          </p>
-          <h3 className="text-3xl font-bold font-heading text-primary-900 kpi-value">
-            {value}
-          </h3>
+          <p className="stat-card-title">{title}</p>
+          <h3 className="stat-card-value">{value}</h3>
         </div>
-        <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-2xl">
+        <div className="stat-card-icon" aria-hidden="true">
           {icon}
         </div>
       </div>
       
-      <div className="flex items-center gap-2 text-sm">
-        {trend && (
-          <span className={`font-semibold ${trend > 0 ? 'text-success' : 'text-danger'}`}>
+      <div className="stat-card-footer">
+        {trend !== undefined && trend !== null && (
+          <span className={trend > 0 ? 'stat-trend-up' : 'stat-trend-down'}>
             {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
           </span>
         )}
-        <span className="text-text-secondary">{description}</span>
+        <span className="stat-desc">{description}</span>
       </div>
     </div>
   );
 };
 
 export default StatCard;
+

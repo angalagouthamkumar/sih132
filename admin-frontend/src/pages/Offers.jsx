@@ -30,10 +30,12 @@ const Offers = () => {
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val);
 
   return (
-    <div className="space-y-6 animate-[fadeIn_0.4s_ease-out]">
-      <div>
-        <h2 className="text-2xl font-heading font-bold text-primary-900">Offers Monitoring</h2>
-        <p className="text-text-secondary">Read-only view of all platform offers.</p>
+    <div className="admin-page">
+      <div className="page-header-row">
+        <div>
+          <h2 className="admin-page-title">Offers Monitoring</h2>
+          <p className="admin-page-subtitle">Read-only view of all platform offers.</p>
+        </div>
       </div>
 
       {loading ? (
@@ -44,12 +46,12 @@ const Offers = () => {
         <EmptyState message="No offers found." icon="🤝" />
       ) : (
         <div className="table-container">
-          <table>
+          <table className="admin-data-table">
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Crop & Quantity</th>
-                <th>Parties (B → F)</th>
+                <th>Parties (Buyer → Farmer)</th>
                 <th>Price/Kg</th>
                 <th>Net Realization</th>
                 <th>Status</th>
@@ -58,17 +60,17 @@ const Offers = () => {
             <tbody>
               {offers.map((offer) => (
                 <tr key={offer._id}>
-                  <td className="text-sm">{new Date(offer.createdAt).toLocaleDateString()}</td>
+                  <td className="cell-date">{new Date(offer.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <div className="font-semibold text-text">{offer.crop?.name || 'Unknown'}</div>
-                    <div className="text-xs text-text-secondary">{offer.quantity} {offer.unit}</div>
+                    <div className="cell-crop-title">{offer.crop?.name || 'Unknown Crop'}</div>
+                    <div className="cell-crop-subtitle">{offer.quantity} {offer.unit}</div>
                   </td>
                   <td>
-                    <div className="text-sm font-medium text-text">{offer.buyer?.name || 'Unknown Buyer'}</div>
-                    <div className="text-xs text-text-secondary">→ {offer.farmer?.name || 'Unknown Farmer'}</div>
+                    <div className="cell-party-buyer">{offer.buyer?.name || 'Unknown Buyer'}</div>
+                    <div className="cell-party-farmer">→ {offer.farmer?.name || 'Unknown Farmer'}</div>
                   </td>
-                  <td className="text-sm">{formatCurrency(offer.offeredPricePerKg)}</td>
-                  <td className="text-sm font-medium text-primary-900 financial-value">{formatCurrency(offer.netRealization)}</td>
+                  <td className="cell-unit-price">{formatCurrency(offer.offeredPricePerKg)}</td>
+                  <td className="cell-amount-value">{formatCurrency(offer.netRealization)}</td>
                   <td>
                     <StatusBadge status={offer.status} />
                   </td>
@@ -83,3 +85,4 @@ const Offers = () => {
 };
 
 export default Offers;
+
