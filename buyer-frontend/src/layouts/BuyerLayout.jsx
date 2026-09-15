@@ -33,7 +33,7 @@ export default function BuyerLayout() {
         <MobileNavigation />
       </div>
 
-      {/* Floating Toast Notification */}
+      {/* Floating action feedback */}
       <Toast toast={toast} onClose={closeToast} />
     </div>
   );

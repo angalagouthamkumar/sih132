@@ -1,3 +1,4 @@
+import { ShoppingCart as UiShoppingCart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getUsers, updateUserAccess, updateUserVerification } from '../services/adminService';
 import PageLoader from '../components/PageLoader';
@@ -151,7 +152,7 @@ const Buyers = () => {
       {loading ? (
         <PageLoader />
       ) : !error && buyers.length === 0 ? (
-        <EmptyState message="No buyers found matching the current filters." icon="🛒" />
+        <EmptyState message="No buyers found matching the current filters." icon={<UiShoppingCart size={20} />} />
       ) : !error ? (
         <div className="table-container">
           <table>
@@ -232,6 +233,7 @@ const Buyers = () => {
         onClose={closeModal}
         onConfirm={handleActionConfirm}
         loading={actionLoading}
+        error={actionError}
         {...getModalConfig()}
       />
     </div>

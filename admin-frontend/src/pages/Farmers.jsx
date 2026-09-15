@@ -1,3 +1,4 @@
+import { Users as UiUsers } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getUsers, updateUserAccess, updateUserVerification } from '../services/adminService';
 import PageLoader from '../components/PageLoader';
@@ -151,7 +152,7 @@ const Farmers = () => {
       {loading ? (
         <PageLoader />
       ) : !error && farmers.length === 0 ? (
-        <EmptyState message="No farmers found matching the current filters." icon="🧑‍🌾" />
+        <EmptyState message="No farmers found matching the current filters." icon={<UiUsers size={20} />} />
       ) : !error ? (
         <div className="table-container">
           <table>
@@ -232,6 +233,7 @@ const Farmers = () => {
         onClose={closeModal}
         onConfirm={handleActionConfirm}
         loading={actionLoading}
+        error={actionError}
         {...getModalConfig()}
       />
     </div>

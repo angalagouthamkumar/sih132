@@ -53,6 +53,17 @@ export default function MarketPrices() {
   // Expandable calculation breakdown
   const [showCalculationInfo, setShowCalculationInfo] = useState(false);
 
+  const formatMarketDate = (value) => {
+    if (!value) return 'Not available';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not available';
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  };
+
   // Load initial data
   const loadAllData = async () => {
     setIsLoading(true);
@@ -329,7 +340,7 @@ export default function MarketPrices() {
               </div>
               <div className="rec-banner-body">
                 <div className="rec-banner-tag">
-                  ★ Best Net Realization Channel
+                  Best Net Realization Channel
                 </div>
                 <div className="rec-banner-title">
                   {comparisonResult.recommendedOption.name} (
@@ -507,7 +518,7 @@ export default function MarketPrices() {
                 </thead>
                 <tbody>
                   {filteredMandiTable.map((item) => (
-                    <tr key={item.id}>
+                    <tr key={item._id}>
                       <td>
                         <span className="table-highlight-text">{item.crop}</span>
                         <span className="table-sub-text">{item.variety}</span>
@@ -543,13 +554,14 @@ export default function MarketPrices() {
                           {item.trend === 'rising' && <TrendingUp size={12} />}
                           {item.trend === 'falling' && <TrendingDown size={12} />}
                           {item.trend === 'stable' && <Minus size={12} />}
+                          {item.trend === 'new listing' && <Minus size={12} />}
                           <span style={{ textTransform: 'capitalize' }}>
                             {item.demand} · {item.trend}
                           </span>
                         </span>
                       </td>
                       <td className="table-timestamp tabular-nums">
-                        {item.lastUpdated}
+                        {formatMarketDate(item.lastUpdated || item.updatedAt || item.priceDate)}
                       </td>
                     </tr>
                   ))}

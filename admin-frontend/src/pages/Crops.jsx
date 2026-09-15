@@ -1,3 +1,4 @@
+import { Sprout as UiSprout } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getCrops, updateCropStatus } from '../services/adminService';
 import PageLoader from '../components/PageLoader';
@@ -96,7 +97,7 @@ const Crops = () => {
       ) : !error && filteredCrops.length === 0 ? (
         <EmptyState
           message={crops.length === 0 ? 'No crop listings found.' : 'No crops match the search.'}
-          icon="🌾"
+          icon={<UiSprout size={20} />}
         />
       ) : !error ? (
         <div className="table-container">

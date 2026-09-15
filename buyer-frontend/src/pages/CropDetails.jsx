@@ -230,6 +230,7 @@ export default function CropDetails() {
   // Only surface safe farmer fields the backend populates
   const farmerName = crop.farmer?.name;
   const farmerLocation = crop.farmer?.location;
+  const farmerVerification = crop.farmer?.verificationStatus || 'pending';
   const totalValue = (Number(crop.expectedPricePerKg) || 0) * (Number(crop.quantity) || 0) * multiplier;
   const imgSrc = crop.imageUrl || crop.image;
   const isAvailable = crop.status === 'available';
@@ -271,7 +272,7 @@ export default function CropDetails() {
 
           {/* Status Badge */}
           <div className={`crop-detail-status-badge ${isAvailable ? 'status-available-lg' : 'status-unavailable-lg'}`}>
-            {isAvailable ? '✓ Available for Procurement' : '✕ Not Currently Available'}
+            {isAvailable ? 'Available for Procurement' : 'Not Currently Available'}
           </div>
 
           {/* Farmer Info Block — only safe populated fields */}
@@ -280,6 +281,13 @@ export default function CropDetails() {
               <div className="farmer-card-header">
                 <UserCheck size={16} color="var(--forest-600)" />
                 <span className="farmer-card-label">Farmer Details</span>
+                <span className={`status-badge ${farmerVerification === 'verified' ? 'status-available' : ''}`}>
+                  {farmerVerification === 'verified'
+                    ? 'Verified'
+                    : farmerVerification === 'rejected'
+                    ? 'Verification Rejected'
+                    : 'Verification Pending'}
+                </span>
               </div>
               {farmerName && (
                 <div className="farmer-detail-row">

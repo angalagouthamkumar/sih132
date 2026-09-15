@@ -13,6 +13,8 @@ import {
   Sparkles,
   Warehouse,
   Building2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
@@ -38,6 +40,7 @@ export default function Dashboard() {
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -56,6 +59,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real crops for dashboard metrics:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingCrops(false);
       }
@@ -75,6 +79,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real received offers for dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingOffers(false);
       }
@@ -90,6 +95,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch backend market data for dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingMarkets(false);
       }
@@ -109,6 +115,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real orders for dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingOrders(false);
       }
@@ -159,6 +166,25 @@ export default function Dashboard() {
     if (!primaryCrop || marketRecords.length === 0) return null;
     return compareMarketAndOffers(primaryCrop, marketRecords, offers);
   }, [primaryCrop, marketRecords, offers]);
+
+  if (!loadingCrops && !loadingOffers && !loadingMarkets && !loadingOrders && loadError) {
+    return (
+      <div className="portal-page-container">
+        <div className="page-title-banner">
+          <div>
+            <h2 className="page-heading">Dashboard unavailable</h2>
+            <p className="page-subheading">Your session is preserved. Reconnect to the server and retry.</p>
+          </div>
+        </div>
+        <div className="alert-box alert-error requirements-error" role="alert">
+          <span><AlertCircle size={16} /> {loadError}</span>
+          <button type="button" className="btn btn-secondary-action" onClick={() => window.location.reload()}>
+            <RefreshCw size={16} /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="portal-page-container">
@@ -315,7 +341,7 @@ export default function Dashboard() {
           ) : (
             <div className="market-ticker-list">
               {featuredMarkets.map((item) => (
-                <div key={item.id} className="market-ticker-row">
+                <div key={item._id} className="market-ticker-row">
                   <div className="ticker-crop-info">
                     <span className="ticker-crop-name">{item.crop}</span>
                     <span className="ticker-market-name">{item.marketName} ({item.district})</span>
@@ -349,7 +375,7 @@ export default function Dashboard() {
             <div>
               <h3 className="section-box-title">Recent Buyer Offers</h3>
               <p className="section-box-subtitle">
-                Direct procurement bids from verified agribusinesses.
+                Direct procurement bids from registered agribusinesses.
               </p>
             </div>
             <Link to="/offers" className="section-link">

@@ -88,7 +88,7 @@ export default function Offers() {
         <div>
           <h2 className="page-heading">Submitted Procurement Bids</h2>
           <p className="page-subheading">
-            Live and historical procurement offers submitted directly to verified Telangana farmers.
+            Current and historical procurement offers submitted directly to Telangana farmers.
           </p>
         </div>
         <button

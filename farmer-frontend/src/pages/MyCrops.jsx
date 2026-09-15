@@ -212,7 +212,7 @@ export default function MyCrops() {
         <EmptyState
           icon={Sprout}
           title="No Crops Listed Yet"
-          description="You haven't listed any farm harvests yet. Add your first crop to start receiving bids from verified buyers."
+          description="You haven't listed any farm harvests yet. Add your first crop to start receiving bids from registered buyers."
           actionLabel="List Your First Crop"
           onAction={() => navigate('/add-crop')}
         />

@@ -1,3 +1,4 @@
+import { Menu as UiMenu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,7 +20,7 @@ const AdminHeader = ({ onMenuClick }) => {
           onClick={onMenuClick}
           aria-label="Open navigation menu"
         >
-          ☰
+          {<UiMenu size={18} />}
         </button>
         <span className="admin-header-title">Admin Console</span>
       </div>

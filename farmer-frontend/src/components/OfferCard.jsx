@@ -212,7 +212,7 @@ export default function OfferCard({
           </div>
         ) : (
           <span className={`offer-resolved-text ${offer.status === 'accepted' ? 'text-accepted' : 'text-declined'}`}>
-            {offer.status === 'accepted' ? '✓ Accepted by You' : '✕ Declined'}
+            {offer.status === 'accepted' ? 'Accepted by You' : 'Declined'}
           </span>
         )}
       </div>

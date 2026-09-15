@@ -18,11 +18,11 @@ const TransportConfig = () => {
     setError('');
     try {
       const res = await getTransportConfig();
-      if (res.success && res.data) {
-        setConfig(res.data);
+      if (res.success) {
+        setConfig(res.data || null);
         setForm({
-          baseCharge: res.data.baseCharge ?? '',
-          ratePerKm:  res.data.ratePerKm ?? '',
+          baseCharge: res.data?.baseCharge ?? '',
+          ratePerKm:  res.data?.ratePerKm ?? '',
         });
       } else {
         setError(res.message || 'Failed to load transport configuration.');
@@ -53,11 +53,11 @@ const TransportConfig = () => {
     const baseCharge = Number(form.baseCharge);
     const ratePerKm  = Number(form.ratePerKm);
 
-    if (isNaN(baseCharge) || baseCharge < 0) {
+    if (form.baseCharge === '' || !Number.isFinite(baseCharge) || baseCharge < 0) {
       setFormError('Base charge must be a non-negative number.');
       return;
     }
-    if (isNaN(ratePerKm) || ratePerKm < 0) {
+    if (form.ratePerKm === '' || !Number.isFinite(ratePerKm) || ratePerKm < 0) {
       setFormError('Rate per km must be a non-negative number.');
       return;
     }
@@ -94,13 +94,13 @@ const TransportConfig = () => {
       </div>
 
       {error && (
-        <div className="alert alert-error" role="alert">{error}</div>
+        <div className="alert alert-error" role="alert">{error} <button type="button" className="btn-secondary" onClick={fetchConfig}>Retry</button></div>
       )}
 
-      {config && (
+      {!error && (
         <div className="transport-config-grid">
           {/* Current values */}
-          <div className="card">
+          {config ? <div className="card">
             <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 700 }}>
               Current Active Values
             </h3>
@@ -130,7 +130,7 @@ const TransportConfig = () => {
                 </div>
               )}
             </div>
-          </div>
+          </div> : <div className="card"><h3>Set up transport pricing</h3><p>No transport configuration has been saved. Enter your actual base charge and per-kilometre rate to enable estimates.</p></div>}
 
           {/* Edit form */}
           <div className="card">
@@ -145,7 +145,7 @@ const TransportConfig = () => {
             )}
             {successMsg && (
               <div className="alert alert-success" role="status" style={{ marginBottom: '1rem' }}>
-                ✓ {successMsg}
+                {successMsg}
               </div>
             )}
 

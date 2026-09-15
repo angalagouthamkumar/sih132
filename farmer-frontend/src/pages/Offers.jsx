@@ -154,7 +154,7 @@ export default function Offers() {
         <div>
           <h2 className="page-heading">Buyer Procurement Offers</h2>
           <p className="page-subheading">
-            Commercial farm-gate bids submitted by verified agribusinesses and grain aggregators.
+            Commercial farm-gate bids submitted by registered agribusinesses and grain aggregators.
           </p>
         </div>
         <button

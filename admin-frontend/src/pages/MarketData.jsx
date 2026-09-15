@@ -1,3 +1,4 @@
+import { ChartColumn as UiChartColumn, Pencil as UiPencil, Trash2 as UiTrash2, X as UiX } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getMarketData, createMarketData, updateMarketData, deleteMarketData } from '../services/marketService';
 import PageLoader from '../components/PageLoader';
@@ -151,7 +152,7 @@ const MarketData = () => {
       ) : !error && records.length === 0 ? (
         <EmptyState
           message="No market data records found. Click 'Add Market Record' to create the first benchmark entry."
-          icon="📊"
+          icon={<UiChartColumn size={20} />}
         />
       ) : !error ? (
         <div className="market-records-grid">
@@ -173,7 +174,7 @@ const MarketData = () => {
                     title="Edit record"
                     aria-label="Edit record"
                   >
-                    ✏️
+                    {<UiPencil size={18} />}
                   </button>
                   <button
                     className="btn-icon btn-icon-danger"
@@ -184,7 +185,7 @@ const MarketData = () => {
                     title="Delete record"
                     aria-label="Delete record"
                   >
-                    🗑️
+                    {<UiTrash2 size={18} />}
                   </button>
                 </div>
               </div>
@@ -244,7 +245,7 @@ const MarketData = () => {
                 onClick={closeForm}
                 aria-label="Close form"
               >
-                ✕
+                {<UiX size={18} />}
               </button>
             </div>
 

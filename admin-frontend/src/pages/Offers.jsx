@@ -1,3 +1,4 @@
+import { Handshake as UiHandshake, AlertTriangle as UiAlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getOffers } from '../services/adminService';
 import PageLoader from '../components/PageLoader';
@@ -41,9 +42,9 @@ const Offers = () => {
       {loading ? (
         <PageLoader />
       ) : error ? (
-        <EmptyState message={error} icon="⚠️" />
+        <EmptyState message={error} icon={<UiAlertTriangle size={20} />} />
       ) : offers.length === 0 ? (
-        <EmptyState message="No offers found." icon="🤝" />
+        <EmptyState message="No offers found." icon={<UiHandshake size={20} />} />
       ) : (
         <div className="table-container">
           <table className="admin-data-table">

@@ -52,7 +52,7 @@ export const getMarketData = async (req, res) => {
         const latest = records[0].toObject();
 
         // Calculate Trend
-        let trend = 'insufficient data';
+        let trend = 'new listing';
         if (records.length >= 2) {
           const previous = records[1];
           if (latest.modalPricePerKg > previous.modalPricePerKg) trend = 'rising';
@@ -75,7 +75,7 @@ export const getMarketData = async (req, res) => {
           totalRequiredKg += qty;
         });
 
-        let demand = 'no data';
+        let demand = 'no active demand';
         if (totalRequiredKg > 5000) demand = 'high';
         else if (totalRequiredKg >= 1000) demand = 'medium';
         else if (totalRequiredKg > 0) demand = 'low';
@@ -84,6 +84,7 @@ export const getMarketData = async (req, res) => {
           ...latest,
           trend,
           demand,
+          lastUpdated: latest.updatedAt || latest.priceDate,
           source: 'Platform market records',
         };
       })

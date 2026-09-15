@@ -1,3 +1,4 @@
+import { Users as UiUsers, ShoppingCart as UiShoppingCart, Truck as UiTruck, AlertTriangle as UiAlertTriangle, IndianRupee as UiIndianRupee } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getDashboardStats } from '../services/adminService';
 import StatCard from '../components/StatCard';
@@ -29,7 +30,7 @@ const Dashboard = () => {
   }, []);
 
   if (loading) return <PageLoader />;
-  if (error) return <EmptyState message={error} icon="⚠️" />;
+  if (error) return <EmptyState message={error} icon={<UiAlertTriangle size={20} />} />;
   if (!stats) return <EmptyState />;
 
   const formatCurrency = (value) => 
@@ -56,25 +57,25 @@ const Dashboard = () => {
         <StatCard 
           title="Total Farmers" 
           value={stats.totalFarmers ?? 0} 
-          icon="🧑‍🌾" 
+          icon={<UiUsers size={20} />} 
           description="Registered farmers"
         />
         <StatCard 
           title="Total Buyers" 
           value={stats.totalBuyers ?? 0} 
-          icon="🛒" 
+          icon={<UiShoppingCart size={20} />} 
           description="Registered buyers"
         />
         <StatCard 
           title="Transaction Value" 
           value={formatCurrency(stats.transactionValue || 0)} 
-          icon="💰" 
+          icon={<UiIndianRupee size={20} />} 
           description="Paid orders value"
         />
         <StatCard 
           title="Active Orders" 
           value={stats.activeOrders ?? 0} 
-          icon="🚚" 
+          icon={<UiTruck size={20} />} 
           description="Confirmed/In-transit"
         />
       </div>

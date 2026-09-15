@@ -89,7 +89,7 @@ export default function Login() {
           <div className="auth-card-header">
             <h1 className="auth-title">Farmer Login</h1>
             <p className="auth-subtitle">
-              Sign in with your verified farmer credentials to access your portal.
+              Sign in with your farmer credentials to access your portal.
             </p>
           </div>
 

@@ -130,7 +130,7 @@ function OrderCard({ order, onComplete, expandedId, onToggleExpand }) {
         <div className="order-card-buyer-row">
           <span className="order-buyer-label">Buyer:</span>
           <span className="order-buyer-name">
-            {order.buyer?.businessName || order.buyer?.name || 'Verified Buyer'}
+            {order.buyer?.businessName || order.buyer?.name || 'Buyer'}
           </span>
         </div>
 

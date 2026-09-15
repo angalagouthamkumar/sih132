@@ -25,6 +25,8 @@ export default function FarmerLayout() {
         return 'APMC Market Mandi Prices';
       case '/offers':
         return 'Buyer Offers & Bids';
+      case '/buyer-requirements':
+        return 'Active Buyer Requirements';
       case '/orders':
         return 'My Dispatch Orders';
       case '/profile':

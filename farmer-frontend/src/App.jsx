@@ -17,6 +17,7 @@ import MarketPrices from './pages/MarketPrices';
 import Offers from './pages/Offers';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
+import BuyerRequirements from './pages/BuyerRequirements';
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/my-crops/:id/edit" element={<EditCrop />} />
           <Route path="/market-prices" element={<MarketPrices />} />
           <Route path="/offers" element={<Offers />} />
+          <Route path="/buyer-requirements" element={<BuyerRequirements />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/profile" element={<Profile />} />
         </Route>

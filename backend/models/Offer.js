@@ -77,6 +77,16 @@ const offerSchema = new mongoose.Schema(
   }
 );
 
+// Database-level protection against rapid duplicate submissions.
+offerSchema.index(
+  { crop: 1, buyer: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: 'pending' },
+    name: 'one_pending_offer_per_buyer_crop',
+  }
+);
+
 const Offer = mongoose.model('Offer', offerSchema);
 
 export default Offer;

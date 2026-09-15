@@ -1,3 +1,4 @@
+import { User as UiUser, LogOut as UiLogOut, X as UiX } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -60,7 +61,7 @@ const AdminLayout = () => {
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close navigation"
             >
-              ✕
+              {<UiX size={18} />}
             </button>
           </div>
 
@@ -91,7 +92,7 @@ const AdminLayout = () => {
                 `sidebar-nav-link${isActive ? ' active' : ''}`
               }
             >
-              <span className="sidebar-nav-icon">👤</span>
+              <span className="sidebar-nav-icon">{<UiUser size={18} />}</span>
               <span>Admin Profile</span>
             </NavLink>
             <button 
@@ -104,7 +105,7 @@ const AdminLayout = () => {
               }}
               style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', marginTop: '0.25rem' }}
             >
-              <span className="sidebar-nav-icon">🚪</span>
+              <span className="sidebar-nav-icon">{<UiLogOut size={18} />}</span>
               <span>Logout</span>
             </button>
           </div>

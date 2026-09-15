@@ -4,7 +4,14 @@ import { loginUser, registerUser, getCurrentUser } from '../services/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('authUser'));
+      return cached?.role === expectedRole ? cached : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,6 +34,7 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
         if (profile.role !== expectedRole) {
           console.warn(`[Auth] Role mismatch for ${expectedRole} portal: User is ${profile.role}`);
           localStorage.removeItem('token');
+          localStorage.removeItem('authUser');
           if (isMounted) {
             setUser(null);
             setToken(null);
@@ -37,13 +45,20 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
             setUser(profile);
             setToken(storedToken);
             setError(null);
+            localStorage.setItem('authUser', JSON.stringify(profile));
           }
         }
       } catch (err) {
-        localStorage.removeItem('token');
-        if (isMounted) {
-          setUser(null);
-          setToken(null);
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('authUser');
+          if (isMounted) {
+            setUser(null);
+            setToken(null);
+          }
+        } else if (isMounted) {
+          setError('Unable to verify the session because the server is unavailable. Your local session has been preserved.');
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -70,6 +85,7 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
       }
 
       localStorage.setItem('token', receivedToken);
+      localStorage.setItem('authUser', JSON.stringify(loggedInUser));
       setToken(receivedToken);
       setUser(loggedInUser);
       return loggedInUser;
@@ -87,6 +103,7 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
       const { user: registeredUser, token: receivedToken } = response.data;
 
       localStorage.setItem('token', receivedToken);
+      localStorage.setItem('authUser', JSON.stringify(registeredUser));
       setToken(receivedToken);
       setUser(registeredUser);
       return registeredUser;
@@ -99,6 +116,7 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('authUser');
     setToken(null);
     setUser(null);
     setError(null);
@@ -112,7 +130,11 @@ export const AuthProvider = ({ children, expectedRole = 'buyer' }) => {
     login,
     register,
     logout,
-    updateUserState: (updatedUser) => setUser((prev) => ({ ...prev, ...updatedUser })),
+    updateUserState: (updatedUser) => setUser((prev) => {
+      const nextUser = { ...prev, ...updatedUser };
+      localStorage.setItem('authUser', JSON.stringify(nextUser));
+      return nextUser;
+    }),
     isAuthenticated: !!user && !!token && user.role === expectedRole,
   };
 

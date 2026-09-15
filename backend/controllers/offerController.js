@@ -184,6 +184,12 @@ export const createOffer = async (req, res) => {
       data: { offer: populatedOffer },
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'You already have an active pending offer for this crop. Please await the farmer’s response.',
+      });
+    }
     return res.status(500).json({
       success: false,
       message: error.message || 'Error occurred while creating offer.',
@@ -313,136 +319,118 @@ export const updateOfferStatus = async (req, res) => {
     }
   }
 
-  // --- Acceptance path: use Mongoose session transaction for atomicity ---
-  const session = await mongoose.startSession();
+  // --- Acceptance path ---
+  // Use guarded single-document updates so this works with both standalone
+  // MongoDB (common in local development) and Atlas replica sets.
+  let reservedCrop = null;
+  let acceptedOffer = null;
+  let createdOrder = null;
   try {
-    let createdOrder = null;
-    let finalOffer = null;
+    const offer = await Offer.findById(id);
+    if (!offer) {
+      const err = new Error('Offer not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+    if (offer.farmer.toString() !== req.user._id.toString()) {
+      const err = new Error('Access denied. You can only respond to offers for crops that you own.');
+      err.statusCode = 403;
+      throw err;
+    }
+    if (offer.status !== 'pending') {
+      const err = new Error(`This offer has already been ${offer.status}. Repeated status change is not allowed.`);
+      err.statusCode = 409;
+      throw err;
+    }
 
-    await session.withTransaction(async () => {
-      // Re-fetch offer within session
-      const offer = await Offer.findById(id).session(session);
-      if (!offer) {
-        const err = new Error('Offer not found.');
-        err.statusCode = 404;
-        throw err;
-      }
+    const existingOrder = await Order.findOne({ offer: offer._id });
+    if (existingOrder) {
+      const err = new Error('An order has already been created for this offer. Duplicate orders are not permitted.');
+      err.statusCode = 409;
+      throw err;
+    }
 
-      // Ownership check: authenticated farmer must own the crop
-      if (offer.farmer.toString() !== req.user._id.toString()) {
-        const err = new Error('Access denied. You can only respond to offers for crops that you own.');
-        err.statusCode = 403;
-        throw err;
-      }
+    // Reserve inventory only if the crop is still available and sufficient.
+    reservedCrop = await Crop.findOneAndUpdate(
+      {
+        _id: offer.crop,
+        status: 'available',
+        quantity: { $gte: offer.quantity },
+      },
+      { $inc: { quantity: -offer.quantity } },
+      { new: true, runValidators: true }
+    );
 
-      // Only pending offers can be accepted
-      if (offer.status !== 'pending') {
-        const err = new Error(`This offer has already been ${offer.status}. Repeated status change is not allowed.`);
-        err.statusCode = 409;
-        throw err;
-      }
+    if (!reservedCrop) {
+      const currentCrop = await Crop.findById(offer.crop);
+      const err = new Error(
+        !currentCrop
+          ? 'The referenced crop listing no longer exists.'
+          : currentCrop.status !== 'available'
+          ? `This crop is currently marked as ${currentCrop.status} and cannot have offers accepted.`
+          : `Insufficient crop quantity. Offer requests ${offer.quantity} ${offer.unit} but only ${currentCrop.quantity} ${currentCrop.unit} remain.`
+      );
+      err.statusCode = currentCrop ? 409 : 404;
+      throw err;
+    }
 
-      // Re-fetch crop within session to verify current state
-      const crop = await Crop.findById(offer.crop).session(session);
-      if (!crop) {
-        const err = new Error('The referenced crop listing no longer exists.');
-        err.statusCode = 404;
-        throw err;
-      }
+    // Only one concurrent request can move this offer out of pending.
+    acceptedOffer = await Offer.findOneAndUpdate(
+      { _id: offer._id, farmer: req.user._id, status: 'pending' },
+      { $set: { status: 'accepted' } },
+      { new: true, runValidators: true }
+    );
 
-      // Crop must still be available
-      if (crop.status !== 'available') {
-        const err = new Error(`This crop is currently marked as ${crop.status} and cannot have offers accepted.`);
-        err.statusCode = 409;
-        throw err;
-      }
+    if (!acceptedOffer) {
+      await Crop.findByIdAndUpdate(reservedCrop._id, {
+        $inc: { quantity: offer.quantity },
+        $set: { status: 'available' },
+      });
+      reservedCrop = null;
+      const err = new Error('This offer was already processed. Duplicate acceptance is not allowed.');
+      err.statusCode = 409;
+      throw err;
+    }
 
-      // Remaining crop quantity must be sufficient
-      if (offer.quantity > crop.quantity) {
-        const err = new Error(
-          `Insufficient crop quantity. Offer requests ${offer.quantity} ${offer.unit} but only ${crop.quantity} ${crop.unit} remain.`
-        );
-        err.statusCode = 409;
-        throw err;
-      }
+    const orderData = {
+      offer: offer._id,
+      crop: reservedCrop._id,
+      farmer: offer.farmer,
+      buyer: offer.buyer,
+      cropName: reservedCrop.name,
+      variety: reservedCrop.variety,
+      quantity: offer.quantity,
+      unit: offer.unit,
+      offeredPricePerKg: offer.offeredPricePerKg,
+      grossAmount: offer.grossAmount,
+      transportCost: offer.transportCost,
+      otherCharges: offer.otherCharges,
+      netAmount: offer.netRealization,
+      orderStatus: 'confirmed',
+      paymentStatus: 'pending',
+      statusHistory: [{ status: 'confirmed', changedBy: req.user._id, changedAt: new Date() }],
+    };
 
-      // Prevent duplicate orders for the same offer
-      const existingOrder = await Order.findOne({ offer: offer._id }).session(session);
-      if (existingOrder) {
-        const err = new Error('An order has already been created for this offer. Duplicate orders are not permitted.');
-        err.statusCode = 409;
-        throw err;
-      }
+    createdOrder = await Order.create(orderData);
 
-      // Snapshot financial values from the offer (never from frontend)
-      const orderData = {
-        offer: offer._id,
-        crop: crop._id,
-        farmer: offer.farmer,
-        buyer: offer.buyer,
-        cropName: crop.name,
-        variety: crop.variety,
-        quantity: offer.quantity,
-        unit: offer.unit,
-        offeredPricePerKg: offer.offeredPricePerKg,
-        grossAmount: offer.grossAmount,
-        transportCost: offer.transportCost,
-        otherCharges: offer.otherCharges,
-        netAmount: offer.netRealization,
-        orderStatus: 'confirmed',
-        paymentStatus: 'pending',
-        statusHistory: [
-          {
-            status: 'confirmed',
-            changedBy: req.user._id,
-            changedAt: new Date(),
-          },
-        ],
-      };
+    const remainingQty = Math.max(0, Math.round(Number(reservedCrop.quantity) * 1000) / 1000);
+    const soldOut = remainingQty <= 0;
+    if (soldOut) {
+      await Crop.findByIdAndUpdate(reservedCrop._id, { $set: { quantity: 0, status: 'sold' } });
+    }
 
-      // Create the order
-      const [order] = await Order.create([orderData], { session });
-      createdOrder = order;
-
-      // Accept this offer
-      offer.status = 'accepted';
-      await offer.save({ session });
-      finalOffer = offer;
-
-      // Update crop quantity and status consistently
-      const remainingQty = Math.round((crop.quantity - offer.quantity) * 1000) / 1000;
-      if (remainingQty <= 0) {
-        crop.quantity = 0;
-        crop.status = 'sold';
-        // When sold out, reject all remaining pending offers for this crop
-        await Offer.updateMany(
-          {
-            crop: offer.crop,
-            _id: { $ne: offer._id },
-            status: 'pending',
-          },
-          { $set: { status: 'rejected' } },
-          { session }
-        );
-      } else {
-        crop.quantity = remainingQty;
-        // Reject only pending offers that exceed the new remaining available quantity
-        await Offer.updateMany(
-          {
-            crop: offer.crop,
-            _id: { $ne: offer._id },
-            status: 'pending',
-            quantity: { $gt: remainingQty },
-          },
-          { $set: { status: 'rejected' } },
-          { session }
-        );
-      }
-      await crop.save({ session });
-    });
+    await Offer.updateMany(
+      {
+        crop: offer.crop,
+        _id: { $ne: offer._id },
+        status: 'pending',
+        ...(soldOut ? {} : { quantity: { $gt: remainingQty } }),
+      },
+      { $set: { status: 'rejected' } }
+    );
 
     // Fetch populated versions after transaction commits
-    const populatedOffer = await Offer.findById(finalOffer._id)
+    const populatedOffer = await Offer.findById(acceptedOffer._id)
       .populate('crop', 'name variety quantity unit expectedPricePerKg location imageUrl status')
       .populate('buyer', 'name businessName location');
 
@@ -460,12 +448,20 @@ export const updateOfferStatus = async (req, res) => {
       },
     });
   } catch (error) {
+    // Compensate if order creation failed after inventory was reserved.
+    if (!createdOrder && acceptedOffer && reservedCrop) {
+      await Promise.allSettled([
+        Offer.updateOne({ _id: acceptedOffer._id, status: 'accepted' }, { $set: { status: 'pending' } }),
+        Crop.updateOne(
+          { _id: reservedCrop._id },
+          { $inc: { quantity: acceptedOffer.quantity }, $set: { status: 'available' } }
+        ),
+      ]);
+    }
     const status = error.statusCode || 500;
     return res.status(status).json({
       success: false,
       message: error.message || 'Error occurred while accepting offer.',
     });
-  } finally {
-    await session.endSession();
   }
 };

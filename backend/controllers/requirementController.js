@@ -95,7 +95,7 @@ export const getAllRequirements = async (req, res) => {
     }
 
     const requirements = await Requirement.find(query)
-      .populate('buyer', 'name businessName location')
+      .populate('buyer', 'name businessName location verificationStatus')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, count: requirements.length, data: requirements });

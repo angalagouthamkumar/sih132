@@ -687,7 +687,7 @@ export default function Orders() {
                     id="payment-reference-input"
                     type="text"
                     className="form-input"
-                    placeholder="e.g. UPI-DEMO-12345"
+                    placeholder="Enter UPI or bank reference"
                     value={paymentModal.reference}
                     onChange={(e) =>
                       setPaymentModal((prev) => ({

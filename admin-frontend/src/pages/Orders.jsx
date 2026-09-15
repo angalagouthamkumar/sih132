@@ -1,3 +1,4 @@
+import { Package as UiPackage, AlertTriangle as UiAlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getOrders } from '../services/adminService';
 import PageLoader from '../components/PageLoader';
@@ -41,9 +42,9 @@ const Orders = () => {
       {loading ? (
         <PageLoader />
       ) : error ? (
-        <EmptyState message={error} icon="⚠️" />
+        <EmptyState message={error} icon={<UiAlertTriangle size={20} />} />
       ) : orders.length === 0 ? (
-        <EmptyState message="No orders found." icon="📦" />
+        <EmptyState message="No orders found." icon={<UiPackage size={20} />} />
       ) : (
         <div className="table-container">
           <table className="admin-data-table">

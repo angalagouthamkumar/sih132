@@ -9,6 +9,7 @@ const ConfirmModal = ({
   confirmText = 'Confirm',
   type = 'danger',
   loading = false,
+  error = '',
 }) => {
   const modalRef = useRef(null);
 
@@ -31,6 +32,7 @@ const ConfirmModal = ({
         <div className="modal-body">
           <h3 id="confirm-modal-title" className="modal-title">{title}</h3>
           <p className="modal-message">{message}</p>
+          {error && <div className="alert alert-error" role="alert">{error}</div>}
 
           <div className="modal-actions">
             <button

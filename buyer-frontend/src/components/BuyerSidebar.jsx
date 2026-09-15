@@ -43,24 +43,11 @@ export default function BuyerSidebar() {
       {/* Brand Identity */}
       <div className="sidebar-brand-box">
         <div className="sidebar-brand-icon">
-          <Building2 size={20} />
+          <span>S</span>
         </div>
         <div className="sidebar-brand-text">
           <h1 className="brand-title">SIH26132</h1>
-          <span className="brand-subtitle">Buyer Procurement Portal</span>
-        </div>
-      </div>
-
-      {/* Enterprise Identity Pill */}
-      <div className="buyer-business-badge-card">
-        <div className="business-avatar-badge">
-          {getInitials(user?.businessName || user?.name)}
-        </div>
-        <div className="business-info-text">
-          <div className="business-name-text">
-            {user?.businessName || 'Procurement Partner'}
-          </div>
-          <div className="business-buyer-name">{user?.name || 'Authorized Buyer'}</div>
+          <span className="brand-subtitle">Buyer Portal</span>
         </div>
       </div>
 

@@ -59,7 +59,7 @@ export default function Profile() {
         <div>
           <h2 className="page-heading">Enterprise Business Profile</h2>
           <p className="page-subheading">
-            Your verified procurement entity details as registered on the SIH26132 platform.
+            Your procurement account details registered on the SIH26132 platform.
           </p>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function Profile() {
                 </label>
                 <div className="profile-field-display profile-field-locked">
                   {formData.email}
-                  <span className="locked-badge">Verified</span>
+                  <span className="locked-badge">Locked</span>
                 </div>
               </div>
 
@@ -242,7 +242,7 @@ export default function Profile() {
             <ul className="security-list">
               <li className="security-item security-item-ok">
                 <CheckCircle2 size={14} color="var(--success-text)" />
-                <span>Buyer role verified</span>
+                <span>Buyer account active</span>
               </li>
               <li className="security-item security-item-ok">
                 <CheckCircle2 size={14} color="var(--success-text)" />

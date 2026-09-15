@@ -11,6 +11,8 @@ import {
   ArrowRight,
   Clock,
   Building2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
@@ -31,6 +33,7 @@ export default function Dashboard() {
   const [loadingOffers, setLoadingOffers] = useState(true);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +52,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real crops for buyer dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingCrops(false);
       }
@@ -66,6 +70,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real sent offers for buyer dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingOffers(false);
       }
@@ -83,6 +88,7 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.warn('Could not fetch real orders for buyer dashboard:', err);
+        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
       } finally {
         if (isMounted) setLoadingOrders(false);
       }
@@ -106,6 +112,25 @@ export default function Dashboard() {
     (sum, o) => sum + (Number(o.netAmount) || 0),
     0
   );
+
+  if (!loadingCrops && !loadingOffers && !loadingOrders && loadError) {
+    return (
+      <div className="portal-page-container">
+        <div className="page-title-banner">
+          <div>
+            <h2 className="page-heading">Dashboard unavailable</h2>
+            <p className="page-subheading">Your session is preserved. Reconnect to the server and retry.</p>
+          </div>
+        </div>
+        <div className="alert-box alert-error" role="alert" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'16px' }}>
+          <span style={{ display:'flex', alignItems:'center', gap:'8px' }}><AlertCircle size={16} /> {loadError}</span>
+          <button type="button" className="btn btn-secondary-action" onClick={() => window.location.reload()}>
+            <RefreshCw size={16} /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Derive live activity log from real orders and submitted offers
   const realActivities = [
@@ -205,7 +230,7 @@ export default function Dashboard() {
           <div>
             <h3 className="section-box-title">Recently Listed Harvest Produce</h3>
             <p className="section-box-subtitle">
-              Live agricultural commodities listed by verified regional farmers on the platform.
+              Current agricultural commodities listed by registered regional farmers on the platform.
             </p>
           </div>
           <Link to="/browse-crops" className="section-link">
@@ -311,7 +336,7 @@ export default function Dashboard() {
               <div className="guideline-content">
                 <h4 className="guideline-title">Secure Order Settlement</h4>
                 <p className="guideline-text">
-                  Payments and shipments are monitored through verified status updates until delivery is confirmed at your warehouse.
+                  Payments and shipments are tracked through recorded order updates until delivery is confirmed at your warehouse.
                 </p>
               </div>
             </div>

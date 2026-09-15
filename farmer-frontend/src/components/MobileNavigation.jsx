@@ -11,6 +11,7 @@ import {
   User,
   LogOut,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -26,6 +27,7 @@ export default function MobileNavigation() {
   ];
 
   const moreTabs = [
+    { to: '/buyer-requirements', label: 'Buyer Requirements', icon: ClipboardList },
     { to: '/offers', label: 'Buyer Offers', icon: Handshake },
     { to: '/orders', label: 'My Orders', icon: ShoppingBag },
     { to: '/profile', label: 'Farmer Profile', icon: User },

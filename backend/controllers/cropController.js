@@ -171,7 +171,7 @@ export const getCrops = async (req, res) => {
     }
 
     const crops = await Crop.find(filter)
-      .populate('farmer', 'name location')
+      .populate('farmer', 'name location verificationStatus')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -204,7 +204,7 @@ export const getCropById = async (req, res) => {
       });
     }
 
-    const crop = await Crop.findById(id).populate('farmer', 'name location');
+    const crop = await Crop.findById(id).populate('farmer', 'name location verificationStatus');
 
     if (!crop) {
       return res.status(404).json({

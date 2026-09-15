@@ -87,7 +87,7 @@ export default function CropCard({ crop }) {
             <span className="crop-meta-text">Harvested: {formatDate(crop.harvestDate)}</span>
           </div>
           {crop.farmer?.name && (
-            <div className="crop-meta-item farmer-verified-meta">
+            <div className="crop-meta-item farmer-meta">
               <UserCheck size={13} className="crop-meta-icon-farmer" />
               <span className="crop-meta-text">
                 Farmer: <strong>{crop.farmer.name}</strong>

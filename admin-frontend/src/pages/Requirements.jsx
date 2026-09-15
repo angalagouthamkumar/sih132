@@ -1,3 +1,4 @@
+import { ClipboardList as UiClipboardList, Trash2 as UiTrash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import PageLoader from '../components/PageLoader';
 import EmptyState from '../components/EmptyState';
@@ -154,7 +155,7 @@ const Requirements = () => {
               ? 'No buyer requirements found. Requirements appear here once buyers post procurement specifications.'
               : 'No requirements match the current filters.'
           }
-          icon="📋"
+          icon={<UiClipboardList size={20} />}
         />
       ) : !error ? (
         <div className="table-container">
@@ -210,7 +211,7 @@ const Requirements = () => {
                       title="Delete requirement"
                       aria-label="Delete requirement"
                     >
-                      🗑️
+                      {<UiTrash2 size={18} />}
                     </button>
                   </td>
                 </tr>

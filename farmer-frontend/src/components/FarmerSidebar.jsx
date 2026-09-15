@@ -8,6 +8,7 @@ import {
   Handshake,
   ShoppingBag,
   User,
+  ClipboardList,
   LogOut,
   ChevronRight,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function FarmerSidebar() {
     { to: '/add-crop', label: 'Add Crop', icon: PlusCircle },
     { to: '/market-prices', label: 'Market Prices', icon: TrendingUp },
     { to: '/offers', label: 'Buyer Offers', icon: Handshake },
+    { to: '/buyer-requirements', label: 'Buyer Requirements', icon: ClipboardList },
     { to: '/orders', label: 'My Orders', icon: ShoppingBag },
     { to: '/profile', label: 'Farmer Profile', icon: User },
   ];

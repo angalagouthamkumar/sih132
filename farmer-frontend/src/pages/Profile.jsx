@@ -70,9 +70,16 @@ export default function Profile() {
             </div>
             <h3 className="profile-title-name">{user?.name}</h3>
             <div className="profile-role-row">
-              <span className="portal-tag">Verified Farmer</span>
-              <span className="status-badge online" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
-                Active KYC
+              <span className="portal-tag">Farmer Account</span>
+              <span
+                className={`status-badge ${user?.verificationStatus === 'verified' ? 'online' : ''}`}
+                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+              >
+                {user?.verificationStatus === 'verified'
+                  ? 'Verified'
+                  : user?.verificationStatus === 'rejected'
+                  ? 'Verification Rejected'
+                  : 'Verification Pending'}
               </span>
             </div>
           </div>
