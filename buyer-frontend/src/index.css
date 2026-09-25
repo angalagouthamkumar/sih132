@@ -2607,6 +2607,29 @@ button, input, select, textarea {
   letter-spacing: 0.03em;
 }
 
+.order-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.order-source-pill.requirement {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.order-source-pill.marketplace {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
 .order-card-date {
   font-size: 0.78rem;
   color: var(--text-secondary);

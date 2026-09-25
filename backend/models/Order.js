@@ -24,8 +24,21 @@ const orderSchema = new mongoose.Schema(
     offer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Offer',
-      required: [true, 'Offer reference is required'],
-      unique: true, // One order per accepted offer — prevents duplicate orders
+      required: false,
+      sparse: true,
+      index: true,
+    },
+    requirementOffer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'RequirementOffer',
+      required: false,
+      sparse: true,
+      index: true,
+    },
+    requirement: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Requirement',
+      required: false,
       index: true,
     },
     crop: {
@@ -123,6 +136,31 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+orderSchema.index(
+  { offer: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { offer: { $exists: true, $ne: null } },
+    name: 'unique_order_per_crop_offer',
+  }
+);
+
+orderSchema.index(
+  { requirementOffer: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { requirementOffer: { $exists: true, $ne: null } },
+    name: 'unique_order_per_requirement_offer',
+  }
+);
+
+orderSchema.pre('validate', function (next) {
+  if (!this.offer && !this.requirementOffer) {
+    this.invalidate('offer', 'Either an offer or requirementOffer reference is required.');
+  }
+  next();
+});
 
 const Order = mongoose.model('Order', orderSchema);
 

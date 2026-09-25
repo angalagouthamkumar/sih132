@@ -96,6 +96,7 @@ function OrderCard({ order, onComplete, expandedId, onToggleExpand }) {
   const shortId = SHORT_ID(order._id);
   const deductions = (Number(order.transportCost) || 0) + (Number(order.otherCharges) || 0);
   const canComplete = order.orderStatus === 'delivered';
+  const isRequirementOrder = Boolean(order.requirementOffer || order.requirement);
 
   return (
     <motion.div
@@ -109,6 +110,9 @@ function OrderCard({ order, onComplete, expandedId, onToggleExpand }) {
         <div className="order-card-ref-col">
           <span className="order-short-id tabular-nums">#{shortId}</span>
           <StatusBadge status={order.orderStatus} type="order" />
+          <span className={`order-source-pill ${isRequirementOrder ? 'requirement' : 'marketplace'}`}>
+            {isRequirementOrder ? 'Requirement Order' : 'Marketplace Order'}
+          </span>
         </div>
         <div className="order-card-date tabular-nums">
           {formatDate(order.createdAt)}
@@ -345,7 +349,7 @@ export default function Orders() {
         <EmptyState
           icon={ShoppingBag}
           title="No Orders Yet"
-          description="Once you accept a buyer offer, an order will be created automatically and appear here."
+          description="Once you accept a buyer offer or a buyer accepts your supply proposal, an order will be created automatically and appear here."
         />
       ) : (
         <>

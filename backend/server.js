@@ -12,6 +12,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import requirementRoutes from './routes/requirementRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
+import requirementOfferRoutes from './routes/requirementOfferRoutes.js';
 import { notFoundHandler, errorHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -63,6 +64,7 @@ app.use('/api/market-data', marketRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/requirements', requirementRoutes);
+app.use('/api/requirement-offers', requirementOfferRoutes);
 app.use('/api/matches', matchRoutes);
 
 // Error Middleware

@@ -105,6 +105,7 @@ function OrderCard({ order, onStatusAction, onPaymentAction, expandedId, onToggl
   const shortId = SHORT_ID(order._id);
   const deductions = (Number(order.transportCost) || 0) + (Number(order.otherCharges) || 0);
   const meta = ORDER_STATUS_META[order.orderStatus] || {};
+  const isRequirementOrder = Boolean(order.requirementOffer || order.requirement);
 
   const canUpdateStatus =
     order.orderStatus === 'confirmed' || order.orderStatus === 'in_transit';
@@ -124,6 +125,9 @@ function OrderCard({ order, onStatusAction, onPaymentAction, expandedId, onToggl
         <div className="order-card-ref-col">
           <span className="order-short-id tabular-nums">#{shortId}</span>
           <StatusBadge status={order.orderStatus} type="order" />
+          <span className={`order-source-pill ${isRequirementOrder ? 'requirement' : 'marketplace'}`}>
+            {isRequirementOrder ? 'Requirement Order' : 'Marketplace Order'}
+          </span>
         </div>
         <div className="order-card-date tabular-nums">{formatDate(order.createdAt)}</div>
       </div>
@@ -449,7 +453,7 @@ export default function Orders() {
         <EmptyState
           icon={ShoppingBag}
           title="No Orders Yet"
-          description="When a farmer accepts one of your procurement offers, an order will appear here automatically."
+          description="When you accept a farmer's supply proposal or a farmer accepts your crop offer, an order will appear here automatically."
           actionLabel="Browse Available Crops"
           onAction={() => window.location.assign('/browse-crops')}
         />

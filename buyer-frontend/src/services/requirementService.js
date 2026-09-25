@@ -19,3 +19,13 @@ export const deleteRequirement = async (id) => {
   const response = await api.delete(`/requirements/${id}`);
   return response.data;
 };
+
+export const getRequirementOffers = async (id) => {
+  const response = await api.get(`/requirements/${id}/offers`);
+  return response.data;
+};
+
+export const updateRequirementOfferStatus = async (id, status) => {
+  const response = await api.patch(`/requirement-offers/${id}/status`, { status });
+  return response.data;
+};

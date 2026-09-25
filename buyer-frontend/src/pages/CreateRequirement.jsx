@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import {
   PlusSquare,
   Trash2,
@@ -14,12 +14,21 @@ import {
   PowerOff,
   Power,
   XCircle,
+  Handshake,
+  UserCheck,
+  Package,
+  X,
+  ArrowRight,
+  ShieldCheck,
+  Send,
 } from 'lucide-react';
 import {
   createRequirement,
   getMyRequirements,
   updateRequirement,
   deleteRequirement,
+  getRequirementOffers,
+  updateRequirementOfferStatus,
 } from '../services/requirementService';
 import { formatINR, formatDate } from '../utils/formatters';
 import PageLoader from '../components/PageLoader';
@@ -48,6 +57,24 @@ export default function CreateRequirement() {
   const [loadingReqs, setLoadingReqs] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
+
+  // Farmer Proposals Modal State
+  const [proposalsModal, setProposalsModal] = useState({
+    isOpen: false,
+    requirement: null,
+    proposals: [],
+    loading: false,
+    error: '',
+  });
+
+  // Proposal Accept / Decline Confirmation State
+  const [proposalActionConfirm, setProposalActionConfirm] = useState({
+    isOpen: false,
+    proposal: null,
+    targetStatus: 'accepted',
+    isSubmitting: false,
+    errorMessage: '',
+  });
 
   const fetchRequirements = async () => {
     try {
@@ -101,8 +128,8 @@ export default function CreateRequirement() {
     e.preventDefault();
     if (!validate()) return;
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
       const payload = {
         cropName: formData.cropName.trim(),
         variety: formData.variety.trim(),
@@ -115,33 +142,42 @@ export default function CreateRequirement() {
       };
 
       const res = await createRequirement(payload);
-      if (res?.success) {
-        showToast('Buying requirement broadcast successfully!', 'success');
-        handleReset();
+      if (res.success) {
+        showToast('Procurement requirement broadcasted successfully!', 'success');
+        setFormData({
+          cropName: '',
+          variety: '',
+          quantity: '',
+          unit: 'quintal',
+          targetPricePerKg: '',
+          deliveryLocation: '',
+          requiredDate: '',
+          qualityNotes: '',
+        });
         fetchRequirements();
       } else {
-        showToast(res?.message || 'Failed to post requirement.', 'error');
+        showToast(res.message || 'Failed to create requirement.', 'error');
       }
     } catch (err) {
-      showToast(err.response?.data?.message || err.message || 'Error creating requirement.', 'error');
+      showToast(err.response?.data?.message || 'Error creating requirement.', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleToggleStatus = async (reqItem) => {
+  const handleToggleStatus = async (item) => {
+    setActionId(item._id);
+    const newStatus = item.status === 'active' ? 'closed' : 'active';
     try {
-      setActionId(reqItem._id);
-      const newStatus = reqItem.status === 'active' ? 'closed' : 'active';
-      const res = await updateRequirement(reqItem._id, { status: newStatus });
-      if (res?.success) {
-        showToast(`Requirement status updated to ${newStatus}.`, 'success');
-        fetchRequirements();
-      } else {
-        showToast(res?.message || 'Failed to update requirement status.', 'error');
+      const res = await updateRequirement(item._id, { status: newStatus });
+      if (res.success) {
+        showToast(`Requirement marked as ${newStatus}.`, 'info');
+        setMyRequirements((prev) =>
+          prev.map((r) => (r._id === item._id ? { ...r, status: newStatus } : r))
+        );
       }
     } catch (err) {
-      showToast(err.response?.data?.message || err.message || 'Error updating status.', 'error');
+      showToast(err.response?.data?.message || 'Failed to update status.', 'error');
     } finally {
       setActionId(null);
     }
@@ -152,76 +188,152 @@ export default function CreateRequirement() {
   };
 
   const closeDeleteModal = () => {
-    if (!actionId) {
-      setDeleteConfirm({ isOpen: false, id: null });
-    }
+    setDeleteConfirm({ isOpen: false, id: null });
   };
 
   const confirmDeleteRequirement = async () => {
-    const { id } = deleteConfirm;
-    if (!id) return;
+    if (!deleteConfirm.id) return;
+    setActionId(deleteConfirm.id);
     try {
-      setActionId(id);
-      const res = await deleteRequirement(id);
-      if (res?.success) {
+      const res = await deleteRequirement(deleteConfirm.id);
+      if (res.success) {
         showToast('Requirement deleted successfully.', 'success');
-        fetchRequirements();
-        setDeleteConfirm({ isOpen: false, id: null });
-      } else {
-        showToast(res?.message || 'Failed to delete requirement.', 'error');
+        setMyRequirements((prev) => prev.filter((r) => r._id !== deleteConfirm.id));
       }
     } catch (err) {
-      showToast(err.response?.data?.message || err.message || 'Error deleting requirement.', 'error');
+      showToast(err.response?.data?.message || 'Failed to delete requirement.', 'error');
     } finally {
       setActionId(null);
+      closeDeleteModal();
     }
   };
 
-  const handleReset = () => {
-    setFormData({
-      cropName: '',
-      variety: '',
-      quantity: '',
-      unit: 'quintal',
-      targetPricePerKg: '',
-      deliveryLocation: '',
-      requiredDate: '',
-      qualityNotes: '',
+  // Farmer proposals handlers
+  const handleOpenProposals = async (requirement) => {
+    setProposalsModal({
+      isOpen: true,
+      requirement,
+      proposals: [],
+      loading: true,
+      error: '',
     });
-    setErrors({});
+
+    try {
+      const res = await getRequirementOffers(requirement._id);
+      const list = res?.data?.proposals || (Array.isArray(res?.data) ? res.data : []) || [];
+      setProposalsModal((prev) => ({
+        ...prev,
+        proposals: list,
+        loading: false,
+      }));
+    } catch (err) {
+      setProposalsModal((prev) => ({
+        ...prev,
+        loading: false,
+        error: err.response?.data?.message || 'Failed to load farmer supply proposals.',
+      }));
+    }
+  };
+
+  const handleCloseProposals = () => {
+    setProposalsModal({
+      isOpen: false,
+      requirement: null,
+      proposals: [],
+      loading: false,
+      error: '',
+    });
+  };
+
+  const handleOpenActionConfirm = (proposal, targetStatus) => {
+    setProposalActionConfirm({
+      isOpen: true,
+      proposal,
+      targetStatus,
+      isSubmitting: false,
+      errorMessage: '',
+    });
+  };
+
+  const handleCloseActionConfirm = () => {
+    if (!proposalActionConfirm.isSubmitting) {
+      setProposalActionConfirm({
+        isOpen: false,
+        proposal: null,
+        targetStatus: 'accepted',
+        isSubmitting: false,
+        errorMessage: '',
+      });
+    }
+  };
+
+  const handleExecuteProposalStatus = async () => {
+    const { proposal, targetStatus } = proposalActionConfirm;
+    if (!proposal) return;
+
+    setProposalActionConfirm((prev) => ({ ...prev, isSubmitting: true, errorMessage: '' }));
+
+    try {
+      const res = await updateRequirementOfferStatus(proposal._id, targetStatus);
+      if (res?.success) {
+        const actionLabel = targetStatus === 'accepted' ? 'accepted' : 'declined';
+        showToast(`Supply proposal from ${proposal.farmer?.name || 'Farmer'} successfully ${actionLabel}!`, 'success');
+        handleCloseActionConfirm();
+
+        // Refresh proposals inside the open modal
+        if (proposalsModal.requirement?._id) {
+          const updatedOffers = await getRequirementOffers(proposalsModal.requirement._id);
+          const list = updatedOffers?.data?.proposals || (Array.isArray(updatedOffers?.data) ? updatedOffers.data : []) || [];
+          setProposalsModal((prev) => ({ ...prev, proposals: list }));
+        }
+
+        // Also refresh requirements list to reflect any fulfilled status
+        await fetchRequirements();
+      } else {
+        setProposalActionConfirm((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          errorMessage: res?.message || 'Failed to update proposal status.',
+        }));
+      }
+    } catch (err) {
+      setProposalActionConfirm((prev) => ({
+        ...prev,
+        isSubmitting: false,
+        errorMessage: err.response?.data?.message || err.message || 'Failed to update proposal status.',
+      }));
+    }
   };
 
   return (
     <div className="portal-page-container">
+      {/* Page Header Banner */}
       <div className="page-title-banner">
         <div>
-          <h2 className="page-heading">Buying Requirements</h2>
+          <h2 className="page-heading">Create Procurement Requirement</h2>
           <p className="page-subheading">
-            Broadcast procurement specifications to registered farmers and manage your active buying requirements.
+            Broadcast customized agricultural procurement specifications to receive direct harvest bids from verified Telangana farmers.
           </p>
         </div>
       </div>
 
       <div className="two-column-layout">
-        {/* Left Form: Create Requirement */}
+        {/* Left Column: Input Form */}
         <div className="layout-left-column">
           <motion.div
             className="card form-card-container"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="card-header" style={{ marginBottom: '18px' }}>
+            <div className="card-header-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PlusSquare size={18} color="var(--forest-800)" />
-                <h3 className="card-title">Post New Produce Requirement</h3>
+                <PlusSquare size={18} style={{ color: 'var(--primary-700)' }} />
+                <h3 className="card-title">Procurement Specifications</h3>
               </div>
-              <p className="card-subtitle">
-                Enter target volumes and desired procurement terms to match registered farmers.
-              </p>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} className="standard-form-layout" noValidate>
               {/* Row 1: Crop Name & Variety */}
               <div className="form-row">
                 <div className="form-group">
@@ -235,14 +347,14 @@ export default function CreateRequirement() {
                     className={`form-input ${errors.cropName ? 'form-input-error' : ''}`}
                     value={formData.cropName}
                     onChange={handleChange}
-                    placeholder="e.g. Paddy, Red Chilli, Cotton, Maize"
+                    placeholder="e.g. Cotton, Paddy, Maize, Chilli"
                   />
                   {errors.cropName && <p className="form-error-text">{errors.cropName}</p>}
                 </div>
 
                 <div className="form-group">
                   <label htmlFor="variety" className="form-label">
-                    Variety / Grade Specification <span className="req-star">*</span>
+                    Grade / Variety Specification <span className="req-star">*</span>
                   </label>
                   <input
                     id="variety"
@@ -360,10 +472,10 @@ export default function CreateRequirement() {
                 )}
               </div>
 
-              {/* Quality Notes */}
+              {/* Quality & Processing Notes */}
               <div className="form-group">
                 <label htmlFor="qualityNotes" className="form-label">
-                  Quality Specifications / Moisture Guidelines (Optional)
+                  Quality Requirements & Specifications (Optional)
                 </label>
                 <textarea
                   id="qualityNotes"
@@ -372,23 +484,11 @@ export default function CreateRequirement() {
                   className="form-textarea"
                   value={formData.qualityNotes}
                   onChange={handleChange}
-                  placeholder="e.g. Moisture content below 14%, clean harvested lots only, no foreign seed mixtures."
-                  maxLength="500"
+                  placeholder="Specify moisture threshold, staple length, grading standards, packaging requirements..."
                 />
-                <small className="form-hint" style={{ display: 'block', textAlign: 'right' }}>
-                  {formData.qualityNotes.length}/500 chars
-                </small>
               </div>
 
               <div className="form-actions-row">
-                <button
-                  type="button"
-                  className="btn btn-secondary-action"
-                  onClick={handleReset}
-                  disabled={isSubmitting}
-                >
-                  Reset Form
-                </button>
                 <button
                   type="submit"
                   className="btn btn-primary-action"
@@ -414,19 +514,19 @@ export default function CreateRequirement() {
         {/* Right Column: Information & Guidelines */}
         <div className="layout-right-column">
           <div className="card guide-card">
-            <h4 className="guide-title">Procurement Matching</h4>
+            <h4 className="guide-title">Procurement Matching & Proposals</h4>
             <p className="guide-text">
-              When you post a requirement, registered farmers with available crop lots of matching crops will be able to review your target volume and location.
+              When you post a requirement, registered farmers with available crops matching your specifications can submit direct supply proposals.
             </p>
             <ul className="guide-list">
               <li>
                 <strong>Target Price:</strong> State your realistic procurement price per kg.
               </li>
               <li>
-                <strong>Delivery Date:</strong> Specify your warehouse intake deadline.
+                <strong>Farmer Proposals:</strong> Click "Farmer Offers" on any requirement below to review and accept supply bids.
               </li>
               <li>
-                <strong>Active / Closed:</strong> You can close requirements once your buying quota is met.
+                <strong>Automatic Orders:</strong> Accepting a proposal creates a confirmed dispatch order and deducts inventory from the farmer's listing.
               </li>
             </ul>
           </div>
@@ -439,7 +539,7 @@ export default function CreateRequirement() {
           <div>
             <h3 className="section-box-title">My Posted Requirements</h3>
             <p className="section-box-subtitle">
-              Manage broadcast requirements, update operational statuses, or delete fulfilled inquiries.
+              Manage broadcast requirements, view received farmer proposals, or update operational statuses.
             </p>
           </div>
           <button
@@ -499,14 +599,27 @@ export default function CreateRequirement() {
                           className={`status-badge-pill ${
                             item.status === 'active'
                               ? 'status-badge-success'
+                              : item.status === 'fulfilled'
+                              ? 'status-badge-accepted'
                               : 'status-badge-warning'
                           }`}
                         >
-                          {item.status === 'active' ? 'Active' : 'Closed'}
+                          {item.status === 'active' ? 'Active' : item.status === 'fulfilled' ? 'Fulfilled' : 'Closed'}
                         </span>
                       </td>
                       <td className="text-right">
                         <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                          {/* Farmer Offers Action */}
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-primary-action"
+                            onClick={() => handleOpenProposals(item)}
+                            title="View Farmer Supply Offers"
+                          >
+                            <Handshake size={12} />
+                            <span>Farmer Offers</span>
+                          </button>
+
                           <button
                             type="button"
                             className="btn btn-xs btn-secondary-action"
@@ -548,7 +661,339 @@ export default function CreateRequirement() {
         )}
       </div>
 
-      {/* Accessible Confirmation Modal */}
+      {/* FARMER PROPOSALS MODAL */}
+      <AnimatePresence>
+        {proposalsModal.isOpen && proposalsModal.requirement && (
+          <div className="modal-backdrop" style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 31, 32, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }} onClick={handleCloseProposals}>
+            <motion.div
+              className="modal-card"
+              style={{
+                background: 'var(--surface, #FFFFFF)',
+                borderRadius: '12px',
+                border: '1px solid var(--border, #E2E8F0)',
+                maxWidth: '680px',
+                width: '100%',
+                maxHeight: '85vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 12px 30px rgba(5, 31, 32, 0.2)',
+                outline: 'none',
+                overflow: 'hidden',
+              }}
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 14 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                background: 'var(--canvas)',
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--forest-950)' }}>
+                    Farmer Supply Offers
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                    Proposals submitted by farmers for <strong>{proposalsModal.requirement.cropName}</strong> ({proposalsModal.requirement.variety}) · Need: {proposalsModal.requirement.quantity} {proposalsModal.requirement.unit} @ ₹{proposalsModal.requirement.targetPricePerKg}/kg
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseProposals}
+                  aria-label="Close"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    padding: '4px',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+                {proposalsModal.loading ? (
+                  <PageLoader message="Loading received farmer proposals..." />
+                ) : proposalsModal.error ? (
+                  <div className="alert-box alert-error">
+                    <AlertCircle size={16} />
+                    <span>{proposalsModal.error}</span>
+                  </div>
+                ) : proposalsModal.proposals.length === 0 ? (
+                  <EmptyState
+                    icon={Handshake}
+                    title="No Farmer Proposals Received Yet"
+                    description={`No farmers have submitted supply proposals for this ${proposalsModal.requirement.cropName} requirement yet. When farmers respond from their harvest, proposals will appear here.`}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {proposalsModal.proposals.map((p) => {
+                      const farmerName = p.farmer?.name || 'Farmer';
+                      const isVerified = p.farmer?.verificationStatus === 'verified';
+                      const status = p.status || 'pending';
+
+                      return (
+                        <div
+                          key={p._id}
+                          style={{
+                            border: '1px solid var(--border)',
+                            borderRadius: '10px',
+                            padding: '16px 18px',
+                            background: 'var(--surface)',
+                            boxShadow: 'var(--shadow-subtle)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <strong style={{ fontSize: '1.05rem', color: 'var(--forest-950)' }}>{farmerName}</strong>
+                                <span className={`status-badge-pill ${isVerified ? 'status-badge-success' : 'status-badge-pending'}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                                  {isVerified ? <ShieldCheck size={11} /> : <Clock size={11} />}
+                                  <span>{isVerified ? 'Verified Farmer' : 'Verification Pending'}</span>
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                Harvest lot: {p.crop?.name} ({p.crop?.variety}) · Location: {p.farmer?.location || 'Telangana'}
+                              </span>
+                            </div>
+
+                            <div style={{ textAlign: 'right' }}>
+                              <span className="tabular-nums" style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--forest-950)' }}>
+                                {formatINR(p.offeredPricePerKg)}
+                                <small style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>/kg</small>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Commercial Specs */}
+                          <div style={{
+                            margin: '12px 0',
+                            padding: '12px 14px',
+                            borderRadius: '8px',
+                            background: 'var(--canvas)',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                            gap: '10px',
+                            fontSize: '0.82rem',
+                          }}>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.72rem' }}>Offered Volume</span>
+                              <strong>{p.quantity} {p.unit}</strong>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.72rem' }}>Gross Total</span>
+                              <span className="tabular-nums font-semibold">{formatINR(p.grossAmount)}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.72rem' }}>Transport Cost</span>
+                              <span className="tabular-nums">{p.transportCost > 0 ? formatINR(p.transportCost) : '₹0'}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.72rem' }}>Other Charges</span>
+                              <span className="tabular-nums">{p.otherCharges > 0 ? formatINR(p.otherCharges) : '₹0'}</span>
+                            </div>
+                            <div style={{ gridColumn: '1 / -1', paddingTop: '6px', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Farmer Net Realization:</span>
+                              <strong className="tabular-nums" style={{ color: 'var(--forest-800)', fontSize: '0.95rem' }}>{formatINR(p.netRealization)}</strong>
+                            </div>
+                          </div>
+
+                          {p.message && (
+                            <p style={{ margin: '8px 0', fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                              "{p.message}"
+                            </p>
+                          )}
+
+                          {/* Status and Action Row */}
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingTop: '10px',
+                            borderTop: '1px solid var(--border)',
+                            flexWrap: 'wrap',
+                            gap: '10px',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className={`status-badge-pill ${
+                                status === 'accepted'
+                                  ? 'status-badge-success'
+                                  : status === 'rejected'
+                                  ? 'status-badge-danger'
+                                  : 'status-badge-pending'
+                              }`}>
+                                {status === 'accepted' ? <CheckCircle2 size={12} /> : status === 'rejected' ? <XCircle size={12} /> : <Clock size={12} />}
+                                <span style={{ textTransform: 'capitalize' }}>{status === 'rejected' ? 'Declined' : status}</span>
+                              </span>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                {formatDate(p.createdAt)}
+                              </span>
+                            </div>
+
+                            <div>
+                              {status === 'pending' ? (
+                                <div style={{ display: 'inline-flex', gap: '8px' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-secondary-action"
+                                    style={{ color: 'var(--error-text)' }}
+                                    onClick={() => handleOpenActionConfirm(p, 'rejected')}
+                                  >
+                                    <XCircle size={13} />
+                                    <span>Decline</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-primary-action"
+                                    onClick={() => handleOpenActionConfirm(p, 'accepted')}
+                                  >
+                                    <CheckCircle2 size={13} />
+                                    <span>Accept Offer</span>
+                                  </button>
+                                </div>
+                              ) : status === 'accepted' ? (
+                                <Link to="/orders" className="btn btn-sm btn-secondary-action">
+                                  <span>View in Orders</span>
+                                  <ArrowRight size={13} />
+                                </Link>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '14px 24px',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                background: 'var(--canvas)',
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary-action"
+                  onClick={handleCloseProposals}
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Dialog for Accept / Decline Proposal */}
+      <AnimatePresence>
+        {proposalActionConfirm.isOpen && proposalActionConfirm.proposal && (
+          <div className="modal-backdrop" style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(5, 31, 32, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '16px',
+          }} onClick={handleCloseActionConfirm}>
+            <motion.div
+              className="modal-card"
+              style={{
+                background: 'var(--surface, #FFFFFF)',
+                borderRadius: '12px',
+                border: '1px solid var(--border, #E2E8F0)',
+                maxWidth: '460px',
+                width: '100%',
+                padding: '24px',
+                boxShadow: '0 12px 30px rgba(5, 31, 32, 0.25)',
+                outline: 'none',
+              }}
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+            >
+              <h3 style={{ margin: '0 0 10px', fontSize: '1.2rem', color: 'var(--forest-950)' }}>
+                {proposalActionConfirm.targetStatus === 'accepted'
+                  ? 'Accept Farmer Supply Offer?'
+                  : 'Decline Farmer Supply Offer?'}
+              </h3>
+
+              {proposalActionConfirm.errorMessage && (
+                <div className="alert-box alert-error" style={{ marginBottom: '14px' }}>
+                  <AlertCircle size={15} />
+                  <span>{proposalActionConfirm.errorMessage}</span>
+                </div>
+              )}
+
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
+                {proposalActionConfirm.targetStatus === 'accepted' ? (
+                  <>
+                    Accepting this supply offer from <strong>{proposalActionConfirm.proposal.farmer?.name || 'Farmer'}</strong> will lock the agreement, deduct <strong>{proposalActionConfirm.proposal.quantity} {proposalActionConfirm.proposal.unit}</strong> from the farmer's crop inventory, and create a <strong>confirmed procurement order</strong> at <strong>₹{proposalActionConfirm.proposal.offeredPricePerKg}/kg</strong>.
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to decline this supply proposal from <strong>{proposalActionConfirm.proposal.farmer?.name || 'Farmer'}</strong>? This action cannot be reversed.
+                  </>
+                )}
+              </p>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary-action"
+                  onClick={handleCloseActionConfirm}
+                  disabled={proposalActionConfirm.isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${proposalActionConfirm.targetStatus === 'accepted' ? 'btn-primary-action' : 'btn-danger-action'}`}
+                  style={{
+                    backgroundColor: proposalActionConfirm.targetStatus === 'accepted' ? 'var(--forest-800)' : '#dc2626',
+                    color: '#ffffff',
+                    border: 'none',
+                  }}
+                  onClick={handleExecuteProposalStatus}
+                  disabled={proposalActionConfirm.isSubmitting}
+                >
+                  {proposalActionConfirm.isSubmitting
+                    ? 'Processing...'
+                    : proposalActionConfirm.targetStatus === 'accepted'
+                    ? 'Confirm & Create Order'
+                    : 'Confirm & Decline'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Accessible Confirmation Modal for Delete */}
       <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         onClose={closeDeleteModal}
