@@ -4,31 +4,31 @@
 /* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
   /* Core Palette */
-  --c-900: #051F20;
-  --c-800: #0B2B26;
-  --c-700: #163832;
-  --c-600: #235347;
-  --c-400: #8EB69B;
-  --c-100: #DAF1DE;
+  --c-900: #060606;
+  --c-800: #171717;
+  --c-700: #171717;
+  --c-600: #262626;
+  --c-400: #64748B;
+  --c-100: #F1F5F9;
 
   /* Semantic Surfaces */
-  --canvas:   #F7F9F6;
+  --canvas:   #F5F8FC;
   --surface:  #FFFFFF;
-  --border:   #E2E9E4;
+  --border:   #E2E8F0;
 
   /* Typography */
-  --text:     #10211C;
-  --text-sec: #66756D;
+  --text:     #060606;
+  --text-sec: #525866;
 
   /* Status */
-  --success:    #235347;
-  --success-bg: #DAF1DE;
-  --warning:    #b7791f;
-  --warning-bg: #fef9c3;
-  --danger:     #c53030;
-  --danger-bg:  #fed7d7;
-  --info:       #1a5276;
-  --info-bg:    #d6eaf8;
+  --success:    #065F46;
+  --success-bg: #ECFDF5;
+  --warning:    #92400E;
+  --warning-bg: #FFFBEB;
+  --danger:     #991B1B;
+  --danger-bg:  #FEF2F2;
+  --info:       #1E40AF;
+  --info-bg:    #EFF6FF;
 
   /* Fonts */
   --font-h: 'Bricolage Grotesque', sans-serif;
@@ -36,7 +36,7 @@
 
   /* Layout */
   --sidebar-w: 260px;
-  --header-h:  68px;
+  --header-h:  64px;
   --mobile-nav-h: 60px;
 
   /* Transitions */
@@ -44,9 +44,9 @@
   --t-normal: 280ms ease;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(5,31,32,0.08);
-  --shadow-md: 0 4px 12px rgba(5,31,32,0.10);
-  --shadow-lg: 0 8px 24px rgba(5,31,32,0.13);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08);
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */
