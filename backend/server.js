@@ -19,11 +19,14 @@ dotenv.config();
 
 // Production environment variable validation
 if (process.env.NODE_ENV === 'production') {
-  const requiredEnv = ['MONGODB_URL', 'JWT_SECRET', 'CLIENT_URLS'];
-  const missing = requiredEnv.filter((key) => !process.env[key]);
+  const hasMongo = !!(process.env.MONGODB_URL || process.env.MONGODB_URI || process.env.MONGO_URI);
+  const missing = [];
+  if (!hasMongo) missing.push('MONGODB_URL (or MONGODB_URI / MONGO_URI)');
+  if (!process.env.JWT_SECRET) missing.push('JWT_SECRET');
+  if (!process.env.CLIENT_URLS) missing.push('CLIENT_URLS');
+
   if (missing.length > 0) {
-    console.error(`[Fatal Startup Error] Missing required production environment variables: ${missing.join(', ')}`);
-    // Note: Do not hard exit in production to allow Render port binding and health check diagnostics
+    console.error(`[Startup Warning] Missing or incomplete production environment variables: ${missing.join(', ')}`);
   }
 }
 
