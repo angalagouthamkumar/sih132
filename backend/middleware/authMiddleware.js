@@ -47,9 +47,16 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token.',
+      });
+    }
+    // Genuine database/server failure must NOT masquerade as 401 token expiry
+    return res.status(500).json({
       success: false,
-      message: 'Invalid or expired token.',
+      message: error.message || 'Authentication error verifying user identity.',
     });
   }
 };

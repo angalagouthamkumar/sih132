@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './config/database.js';
+import { connectDB, isDatabaseConnected } from './config/database.js';
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import cropRoutes from './routes/cropRoutes.js';
@@ -23,67 +23,102 @@ if (process.env.NODE_ENV === 'production') {
   const missing = requiredEnv.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     console.error(`[Fatal Startup Error] Missing required production environment variables: ${missing.join(', ')}`);
-    process.exit(1);
+    // Note: Do not hard exit in production to allow Render port binding and health check diagnostics
   }
 }
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration parsing comma-separated CLIENT_URLS
-const allowedOrigins = process.env.CLIENT_URLS
-  ? process.env.CLIENT_URLS.split(',').map((origin) => origin.trim()).filter(Boolean)
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+// Normalized CORS origin configuration
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+  'https://sih132-5paw.vercel.app',
+];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      // Strict origin rejection - do NOT allow arbitrary browser origins
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  })
-);
+const envOrigins = process.env.CLIENT_URLS
+  ? process.env.CLIENT_URLS.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)
+  : [];
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Server-to-server, curl, mobile
+  const normalized = origin.trim().replace(/\/+$/, '');
+  if (allowedOrigins.includes(normalized)) return true;
+  // Allow Vercel preview deployments matching pattern
+  if (/^https:\/\/sih132-[a-z0-9-]+\.vercel\.app$/.test(normalized)) return true;
+  return false;
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    // Deny origin safely without throwing 500 internal server error
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
-// API Routes
+// Public Health Check Route (does not require database ready state)
 app.use('/api', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/crops', cropRoutes);
-app.use('/api/offers', offerRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/market-data', marketRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/requirements', requirementRoutes);
-app.use('/api/requirement-offers', requirementOfferRoutes);
-app.use('/api/matches', matchRoutes);
+
+// Fast Database Availability Guard for data routes to prevent hanging requests when DB is reconnecting
+const checkDatabaseAvailability = (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  if (!isDatabaseConnected()) {
+    res.setHeader('Retry-After', '5');
+    return res.status(503).json({
+      success: false,
+      code: 'DATABASE_UNAVAILABLE',
+      message: 'Database service is connecting or temporarily unavailable. Please retry in a few moments.',
+    });
+  }
+  next();
+};
+
+// Protected / Data API Routes (guarded by database readiness)
+app.use('/api/auth', checkDatabaseAvailability, authRoutes);
+app.use('/api/crops', checkDatabaseAvailability, cropRoutes);
+app.use('/api/offers', checkDatabaseAvailability, offerRoutes);
+app.use('/api/orders', checkDatabaseAvailability, orderRoutes);
+app.use('/api/market-data', checkDatabaseAvailability, marketRoutes);
+app.use('/api/admin', checkDatabaseAvailability, adminRoutes);
+app.use('/api/users', checkDatabaseAvailability, userRoutes);
+app.use('/api/requirements', checkDatabaseAvailability, requirementRoutes);
+app.use('/api/requirement-offers', checkDatabaseAvailability, requirementOfferRoutes);
+app.use('/api/matches', checkDatabaseAvailability, matchRoutes);
 
 // Error Middleware
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Connect to Database before accepting traffic
-const startServer = async () => {
-  const dbConnection = await connectDB();
+// Start server immediately on 0.0.0.0 so Render detects port binding without delay
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Backend] Server listening on 0.0.0.0:${PORT}`);
+  console.log(`[Backend] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+});
 
-  if (process.env.NODE_ENV === 'production' && !dbConnection) {
-    console.error('[Fatal Startup Error] Production MongoDB connection failed. Exiting.');
-    process.exit(1);
-  }
+// Connect to Database asynchronously in background without delaying server start
+connectDB().catch((err) => {
+  console.error(`[Database] Initial MongoDB connection error: ${err.message}`);
+});
 
-  app.listen(PORT, () => {
-    console.log(`[Backend] Server listening on port ${PORT}`);
-    console.log(`[Backend] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-  });
-};
+export default app;
 
-startServer();

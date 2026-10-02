@@ -73,10 +73,10 @@ export const AuthProvider = ({ children, expectedRole = 'farmer' }) => {
     };
   }, [expectedRole]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, options = {}) => {
     setError(null);
     try {
-      const response = await loginUser({ email, password, expectedRole });
+      const response = await loginUser({ email, password, expectedRole }, options);
       const { user: loggedInUser, token: receivedToken } = response.data;
 
       if (loggedInUser.role !== expectedRole) {
@@ -91,6 +91,11 @@ export const AuthProvider = ({ children, expectedRole = 'farmer' }) => {
       setUser(loggedInUser);
       return loggedInUser;
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        const cancelErr = new Error('Authentication request was cancelled.');
+        cancelErr.isCanceled = true;
+        throw cancelErr;
+      }
       const message = err.response?.data?.message || err.message || 'Login failed. Please try again.';
       setError(message);
       throw new Error(message);

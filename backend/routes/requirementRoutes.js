@@ -17,7 +17,7 @@ router.use(protect);
 
 router.post('/', authorizeRoles('buyer'), createRequirement);
 router.get('/mine', authorizeRoles('buyer'), getMyRequirements);
-router.get('/', authorizeRoles('farmer', 'admin'), getAllRequirements);
+router.get('/', authorizeRoles('farmer', 'buyer', 'admin'), getAllRequirements);
 router.get('/:id/offers', authorizeRoles('buyer', 'admin'), getRequirementProposals);
 router.get('/:id', getRequirementById);
 router.patch('/:id', authorizeRoles('buyer'), updateRequirement);

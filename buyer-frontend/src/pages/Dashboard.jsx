@@ -29,75 +29,83 @@ export default function Dashboard() {
 
   const [crops, setCrops] = useState([]);
   const [loadingCrops, setLoadingCrops] = useState(true);
+  const [cropsError, setCropsError] = useState('');
+
   const [offers, setOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
+  const [offersError, setOffersError] = useState('');
+
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const [ordersError, setOrdersError] = useState('');
+
+  const loadCrops = async () => {
+    setLoadingCrops(true);
+    setCropsError('');
+    try {
+      const cropRes = await getAvailableCrops();
+      const cropList =
+        cropRes?.data?.crops ||
+        (Array.isArray(cropRes?.data) ? cropRes.data : []) ||
+        cropRes?.crops ||
+        [];
+      setCrops(cropList);
+    } catch (err) {
+      console.warn('Could not fetch real crops for buyer dashboard:', err);
+      setCropsError(err.message || 'Unable to load harvest produce.');
+    } finally {
+      setLoadingCrops(false);
+    }
+  };
+
+  const loadOffers = async () => {
+    setLoadingOffers(true);
+    setOffersError('');
+    try {
+      const offerRes = await getSentOffers();
+      const offerList =
+        offerRes?.data?.offers ||
+        (Array.isArray(offerRes?.data) ? offerRes.data : []) ||
+        offerRes?.offers ||
+        [];
+      setOffers(offerList);
+    } catch (err) {
+      console.warn('Could not fetch real sent offers for buyer dashboard:', err);
+      setOffersError(err.message || 'Unable to load sent offers.');
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
+  const loadOrders = async () => {
+    setLoadingOrders(true);
+    setOrdersError('');
+    try {
+      const orderRes = await getBuyerOrders();
+      const orderList =
+        orderRes?.data?.orders ||
+        (Array.isArray(orderRes?.data) ? orderRes.data : []) ||
+        orderRes?.orders ||
+        [];
+      setOrders(orderList);
+    } catch (err) {
+      console.warn('Could not fetch real orders for buyer dashboard:', err);
+      setOrdersError(err.message || 'Unable to load procurement orders.');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const reloadAll = () => {
+    loadCrops();
+    loadOffers();
+    loadOrders();
+  };
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadDashboardData() {
-      // 1. Fetch live available crops
-      try {
-        const cropRes = await getAvailableCrops();
-        const cropList =
-          cropRes?.data?.crops ||
-          (Array.isArray(cropRes?.data) ? cropRes.data : []) ||
-          cropRes?.crops ||
-          [];
-        if (isMounted) {
-          setCrops(cropList);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real crops for buyer dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingCrops(false);
-      }
-
-      // 2. Fetch real submitted offers
-      try {
-        const offerRes = await getSentOffers();
-        const offerList =
-          offerRes?.data?.offers ||
-          (Array.isArray(offerRes?.data) ? offerRes.data : []) ||
-          offerRes?.offers ||
-          [];
-        if (isMounted) {
-          setOffers(offerList);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real sent offers for buyer dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingOffers(false);
-      }
-
-      // 3. Fetch real orders
-      try {
-        const orderRes = await getBuyerOrders();
-        const orderList =
-          orderRes?.data?.orders ||
-          (Array.isArray(orderRes?.data) ? orderRes.data : []) ||
-          orderRes?.orders ||
-          [];
-        if (isMounted) {
-          setOrders(orderList);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real orders for buyer dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingOrders(false);
-      }
-    }
-
-    loadDashboardData();
-    return () => {
-      isMounted = false;
-    };
+    loadCrops();
+    loadOffers();
+    loadOrders();
   }, []);
 
   const recentCrops = crops.slice(0, 3);
@@ -113,7 +121,9 @@ export default function Dashboard() {
     0
   );
 
-  if (!loadingCrops && !loadingOffers && !loadingOrders && loadError) {
+  const allFailed = !loadingCrops && !loadingOffers && !loadingOrders && cropsError && offersError && ordersError;
+
+  if (allFailed) {
     return (
       <div className="portal-page-container">
         <div className="page-title-banner">
@@ -123,8 +133,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="alert-box alert-error" role="alert" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'16px' }}>
-          <span style={{ display:'flex', alignItems:'center', gap:'8px' }}><AlertCircle size={16} /> {loadError}</span>
-          <button type="button" className="btn btn-secondary-action" onClick={() => window.location.reload()}>
+          <span style={{ display:'flex', alignItems:'center', gap:'8px' }}><AlertCircle size={16} /> {cropsError || 'Unable to load dashboard data. Check the server connection and try again.'}</span>
+          <button type="button" className="btn btn-secondary-action" onClick={reloadAll}>
             <RefreshCw size={16} /> Retry
           </button>
         </div>

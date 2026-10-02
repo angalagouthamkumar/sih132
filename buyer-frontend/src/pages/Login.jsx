@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
@@ -18,6 +18,28 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slowNotice, setSlowNotice] = useState(false);
+
+  const abortControllerRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const slowTimerRef = useRef(null);
+  const offlineListenerRef = useRef(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (slowTimerRef.current) {
+        clearTimeout(slowTimerRef.current);
+      }
+      if (offlineListenerRef.current) {
+        window.removeEventListener('offline', offlineListenerRef.current);
+      }
+    };
+  }, []);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -48,21 +70,84 @@ export default function Login() {
     if (apiError) setApiError('');
   };
 
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    if (offlineListenerRef.current) {
+      window.removeEventListener('offline', offlineListenerRef.current);
+      offlineListenerRef.current = null;
+    }
+    if (isMountedRef.current) {
+      setIsSubmitting(false);
+      setSlowNotice(false);
+      setApiError('Authentication was cancelled.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setApiError('You appear to be offline. Please check your internet connection.');
+      return;
+    }
+
     setIsSubmitting(true);
     setApiError('');
+    setSlowNotice(false);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    slowTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setSlowNotice(true);
+      }
+    }, 6000);
+
+    const onOffline = () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      if (isMountedRef.current) {
+        setApiError('Network connection was lost. Please check your internet connection.');
+        setIsSubmitting(false);
+        setSlowNotice(false);
+      }
+    };
+
+    offlineListenerRef.current = onOffline;
+    window.addEventListener('offline', onOffline, { once: true });
 
     try {
-      await login(formData.email.trim(), formData.password);
-      const destination = location.state?.from?.pathname || '/dashboard';
-      navigate(destination, { replace: true });
+      await login(formData.email.trim(), formData.password, { signal: abortController.signal });
+      if (isMountedRef.current) {
+        const destination = location.state?.from?.pathname || '/dashboard';
+        navigate(destination, { replace: true });
+      }
     } catch (err) {
-      setApiError(err.message || 'Login failed. Please verify your credentials.');
+      if (isMountedRef.current) {
+        setApiError(err.message || 'Login failed. Please verify your credentials.');
+      }
     } finally {
-      setIsSubmitting(false);
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      if (offlineListenerRef.current) {
+        window.removeEventListener('offline', offlineListenerRef.current);
+        offlineListenerRef.current = null;
+      }
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+        setSlowNotice(false);
+      }
     }
   };
 
@@ -167,6 +252,21 @@ export default function Login() {
                 </>
               )}
             </button>
+            {isSubmitting && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-block"
+                onClick={handleCancel}
+                style={{ marginTop: '10px' }}
+              >
+                Cancel Request
+              </button>
+            )}
+            {isSubmitting && slowNotice && (
+              <p style={{ marginTop: '12px', fontSize: '0.84rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                Connecting to cloud service. If the server was idle, startup may take a moment...
+              </p>
+            )}
           </form>
 
           <div className="auth-footer-text">

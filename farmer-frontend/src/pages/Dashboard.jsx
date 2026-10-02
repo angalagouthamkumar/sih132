@@ -34,101 +34,116 @@ export default function Dashboard() {
 
   const [crops, setCrops] = useState([]);
   const [loadingCrops, setLoadingCrops] = useState(true);
+  const [cropsError, setCropsError] = useState('');
+
   const [offers, setOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
+  const [offersError, setOffersError] = useState('');
+
   const [marketRecords, setMarketRecords] = useState([]);
   const [loadingMarkets, setLoadingMarkets] = useState(true);
+  const [marketsError, setMarketsError] = useState('');
+
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const [ordersError, setOrdersError] = useState('');
 
-  useEffect(() => {
-    let isMounted = true;
-
-    // Load crops
-    async function loadCrops() {
-      try {
-        const res = await getMyCrops();
-        const cropsList =
-          res?.data?.crops ||
-          (Array.isArray(res?.data) ? res.data : []) ||
-          res?.crops ||
-          [];
-        if (isMounted && res?.success) {
-          setCrops(cropsList);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real crops for dashboard metrics:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingCrops(false);
+  // Load crops
+  const loadCrops = async () => {
+    setLoadingCrops(true);
+    setCropsError('');
+    try {
+      const res = await getMyCrops();
+      const cropsList =
+        res?.data?.crops ||
+        (Array.isArray(res?.data) ? res.data : []) ||
+        res?.crops ||
+        [];
+      if (res?.success) {
+        setCrops(cropsList);
       }
+    } catch (err) {
+      console.warn('Could not fetch real crops for dashboard metrics:', err);
+      setCropsError(err.message || 'Unable to load farm crops.');
+    } finally {
+      setLoadingCrops(false);
     }
+  };
 
-    // Load real received offers
-    async function loadOffers() {
-      try {
-        const res = await getReceivedOffers();
-        const offerList =
-          res?.data?.offers ||
-          (Array.isArray(res?.data) ? res.data : []) ||
-          res?.offers ||
-          [];
-        if (isMounted && res?.success) {
-          setOffers(offerList);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real received offers for dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingOffers(false);
+  // Load real received offers
+  const loadOffers = async () => {
+    setLoadingOffers(true);
+    setOffersError('');
+    try {
+      const res = await getReceivedOffers();
+      const offerList =
+        res?.data?.offers ||
+        (Array.isArray(res?.data) ? res.data : []) ||
+        res?.offers ||
+        [];
+      if (res?.success) {
+        setOffers(offerList);
       }
+    } catch (err) {
+      console.warn('Could not fetch real received offers for dashboard:', err);
+      setOffersError(err.message || 'Unable to load buyer offers.');
+    } finally {
+      setLoadingOffers(false);
     }
+  };
 
-    // Load demo APMC market records from backend API
-    async function loadMarkets() {
-      try {
-        const res = await getMarketData();
-        const list = res?.data?.markets || [];
-        if (isMounted && res?.success) {
-          setMarketRecords(list);
-        }
-      } catch (err) {
-        console.warn('Could not fetch backend market data for dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingMarkets(false);
+  // Load demo APMC market records from backend API
+  const loadMarkets = async () => {
+    setLoadingMarkets(true);
+    setMarketsError('');
+    try {
+      const res = await getMarketData();
+      const list = res?.data?.markets || [];
+      if (res?.success) {
+        setMarketRecords(list);
       }
+    } catch (err) {
+      console.warn('Could not fetch backend market data for dashboard:', err);
+      setMarketsError(err.message || 'Unable to load APMC market data.');
+    } finally {
+      setLoadingMarkets(false);
     }
+  };
 
-    // Load real orders
-    async function loadOrders() {
-      try {
-        const res = await getFarmerOrders();
-        const list =
-          res?.data?.orders ||
-          (Array.isArray(res?.data) ? res.data : []) ||
-          res?.orders ||
-          [];
-        if (isMounted && res?.success) {
-          setOrders(list);
-        }
-      } catch (err) {
-        console.warn('Could not fetch real orders for dashboard:', err);
-        if (isMounted) setLoadError('Unable to load dashboard data. Check the server connection and try again.');
-      } finally {
-        if (isMounted) setLoadingOrders(false);
+  // Load real orders
+  const loadOrders = async () => {
+    setLoadingOrders(true);
+    setOrdersError('');
+    try {
+      const res = await getFarmerOrders();
+      const list =
+        res?.data?.orders ||
+        (Array.isArray(res?.data) ? res.data : []) ||
+        res?.orders ||
+        [];
+      if (res?.success) {
+        setOrders(list);
       }
+    } catch (err) {
+      console.warn('Could not fetch real orders for dashboard:', err);
+      setOrdersError(err.message || 'Unable to load orders.');
+    } finally {
+      setLoadingOrders(false);
     }
+  };
 
+  const reloadAll = () => {
     loadCrops();
     loadOffers();
     loadMarkets();
     loadOrders();
+  };
 
-    return () => {
-      isMounted = false;
-    };
+  useEffect(() => {
+    loadCrops();
+    loadOffers();
+    loadMarkets();
+    loadOrders();
   }, []);
 
   // Compute real metrics from crops
@@ -167,7 +182,11 @@ export default function Dashboard() {
     return compareMarketAndOffers(primaryCrop, marketRecords, offers);
   }, [primaryCrop, marketRecords, offers]);
 
-  if (!loadingCrops && !loadingOffers && !loadingMarkets && !loadingOrders && loadError) {
+  const allLoading = loadingCrops && loadingOffers && loadingMarkets && loadingOrders;
+  const allFailed = !loadingCrops && !loadingOffers && !loadingMarkets && !loadingOrders && cropsError && offersError && marketsError && ordersError;
+  const partialError = cropsError || offersError || marketsError || ordersError;
+
+  if (allFailed) {
     return (
       <div className="portal-page-container">
         <div className="page-title-banner">
@@ -177,8 +196,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="alert-box alert-error requirements-error" role="alert">
-          <span><AlertCircle size={16} /> {loadError}</span>
-          <button type="button" className="btn btn-secondary-action" onClick={() => window.location.reload()}>
+          <span><AlertCircle size={16} /> {cropsError || 'Unable to load dashboard data. Check the server connection and try again.'}</span>
+          <button type="button" className="btn btn-secondary-action" onClick={reloadAll}>
             <RefreshCw size={16} /> Retry
           </button>
         </div>
@@ -338,7 +357,15 @@ export default function Dashboard() {
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Loading mandi benchmarks...
             </div>
-          ) : (
+          ) : marketsError ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <AlertCircle size={20} color="var(--amber-600)" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{marketsError}</p>
+              <button type="button" className="btn btn-secondary-action" style={{ marginTop: '8px' }} onClick={loadMarkets}>
+                <RefreshCw size={13} style={{ marginRight: '4px' }} /> Retry Benchmark Rates
+              </button>
+            </div>
+          ) : featuredMarkets.length > 0 ? (
             <div className="market-ticker-list">
               {featuredMarkets.map((item) => (
                 <div key={item._id} className="market-ticker-row">
@@ -366,6 +393,10 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          ) : (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <p style={{ fontSize: '0.88rem' }}>No mandi benchmark records available.</p>
+            </div>
           )}
         </div>
 
@@ -387,6 +418,14 @@ export default function Dashboard() {
           {loadingOffers ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               Loading buyer offers...
+            </div>
+          ) : offersError ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <AlertCircle size={20} color="var(--amber-600)" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{offersError}</p>
+              <button type="button" className="btn btn-secondary-action" style={{ marginTop: '8px' }} onClick={loadOffers}>
+                <RefreshCw size={13} style={{ marginRight: '4px' }} /> Retry Offers
+              </button>
             </div>
           ) : recentPendingOffers.length > 0 ? (
             <div className="recent-offers-list">
