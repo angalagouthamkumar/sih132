@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, RefreshCw, Briefcase } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, RefreshCw, Briefcase, Mail, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { sendSignupOTPUser } from '../services/api';
 
 export default function Signup() {
   const { register, isAuthenticated } = useAuth();
@@ -22,11 +23,39 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+
+  // Modal & OTP state
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  // 60-second countdown timer for resending OTP inside modal
+  useEffect(() => {
+    let interval = null;
+    if (showOtpModal && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [showOtpModal, resendTimer]);
 
   const validate = () => {
     const newErrors = {};
@@ -39,9 +68,12 @@ export default function Signup() {
       newErrors.businessName = 'Business or company name is required';
     }
 
-    if (!formData.email.trim()) {
+    const trimmedEmail = formData.email.trim().toLowerCase();
+    if (!trimmedEmail) {
       newErrors.email = 'Email address is required';
-    } else if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+    } else if (!trimmedEmail.endsWith('@gmail.com') || trimmedEmail.length <= 10) {
+      newErrors.email = 'Only valid @gmail.com addresses are accepted.';
+    } else if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -76,27 +108,77 @@ export default function Signup() {
     if (apiError) setApiError('');
   };
 
-  const handleSubmit = async (e) => {
+  // Step 1: Validate form, send real Gmail OTP, and open modal
+  const handleInitiateSignup = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    setIsSubmitting(true);
+    setIsSendingOtp(true);
     setApiError('');
+
+    try {
+      const res = await sendSignupOTPUser(formData.email.trim().toLowerCase());
+      setShowOtpModal(true);
+      setOtp('');
+      setModalError('');
+      setModalSuccess(res.message || 'Verification OTP sent to your Gmail inbox.');
+      setResendTimer(60);
+      setCanResend(false);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to send verification code. Please try again.';
+      setApiError(msg);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Resend OTP in Step 2 modal
+  const handleResendSignupOTP = async () => {
+    if (!canResend || isSendingOtp) return;
+    setIsSendingOtp(true);
+    setModalError('');
+    setModalSuccess('');
+
+    try {
+      const res = await sendSignupOTPUser(formData.email.trim().toLowerCase());
+      setResendTimer(60);
+      setCanResend(false);
+      setModalSuccess(res.message || 'A new verification code has been sent to your Gmail inbox.');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to resend verification code.';
+      setModalError(msg);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Step 2: Submit OTP and complete registration
+  const handleVerifyAndRegister = async (e) => {
+    e.preventDefault();
+    if (!otp.trim() || !/^\d{6}$/.test(otp.trim())) {
+      setModalError('Please enter the 6-digit numeric verification code.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setModalError('');
 
     try {
       await register({
         name: formData.name.trim(),
         businessName: formData.businessName.trim(),
-        email: formData.email.trim(),
+        email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim(),
         location: formData.location.trim(),
         password: formData.password,
+        otp: otp.trim(),
       });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setApiError(err.message || 'Registration failed. Please try again.');
+      const msg = err.response?.data?.message || err.message || 'Registration failed. Please check the code and try again.';
+      setModalError(msg);
     } finally {
-      setIsSubmitting(false);
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -127,13 +209,13 @@ export default function Signup() {
           </div>
 
           {apiError && (
-            <div className="alert-box alert-error" role="alert">
+            <div className="alert-box alert-error" role="alert" style={{ marginBottom: '16px' }}>
               <AlertCircle size={16} className="alert-icon" />
               <span>{apiError}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate>
+          <form onSubmit={handleInitiateSignup} noValidate>
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="name" className="form-label">
@@ -147,7 +229,7 @@ export default function Signup() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Sunita Sharma"
-                  disabled={isSubmitting}
+                  disabled={isSendingOtp}
                   required
                 />
                 {errors.name && <p className="form-error-text">{errors.name}</p>}
@@ -164,8 +246,8 @@ export default function Signup() {
                   className={`form-input ${errors.businessName ? 'form-input-error' : ''}`}
                   value={formData.businessName}
                   onChange={handleChange}
-                  placeholder="Agro Trading Co."
-                  disabled={isSubmitting}
+                  placeholder="FreshMart Agro Pvt Ltd"
+                  disabled={isSendingOtp}
                   required
                 />
                 {errors.businessName && <p className="form-error-text">{errors.businessName}</p>}
@@ -175,7 +257,7 @@ export default function Signup() {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="email" className="form-label">
-                  Business Email <span className="req-star">*</span>
+                  Gmail Address <span className="req-star">*</span>
                 </label>
                 <input
                   id="email"
@@ -184,9 +266,9 @@ export default function Signup() {
                   className={`form-input ${errors.email ? 'form-input-error' : ''}`}
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="procurement@agrotrading.com"
+                  placeholder="buyer@gmail.com"
                   autoComplete="email"
-                  disabled={isSubmitting}
+                  disabled={isSendingOtp}
                   required
                 />
                 {errors.email && <p className="form-error-text">{errors.email}</p>}
@@ -203,9 +285,9 @@ export default function Signup() {
                   className={`form-input ${errors.phone ? 'form-input-error' : ''}`}
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="9876501234"
+                  placeholder="9876543210"
                   maxLength={10}
-                  disabled={isSubmitting}
+                  disabled={isSendingOtp}
                   required
                 />
                 {errors.phone && <p className="form-error-text">{errors.phone}</p>}
@@ -214,7 +296,7 @@ export default function Signup() {
 
             <div className="form-group">
               <label htmlFor="location" className="form-label">
-                Operational Headquarters / City
+                Business Location / City
               </label>
               <input
                 id="location"
@@ -224,7 +306,7 @@ export default function Signup() {
                 value={formData.location}
                 onChange={handleChange}
                 placeholder="Hyderabad, Telangana"
-                disabled={isSubmitting}
+                disabled={isSendingOtp}
               />
             </div>
 
@@ -243,7 +325,7 @@ export default function Signup() {
                     onChange={handleChange}
                     placeholder="Min 8 chars"
                     autoComplete="new-password"
-                    disabled={isSubmitting}
+                    disabled={isSendingOtp}
                     required
                   />
                   <button
@@ -273,7 +355,7 @@ export default function Signup() {
                     onChange={handleChange}
                     placeholder="Repeat password"
                     autoComplete="new-password"
-                    disabled={isSubmitting}
+                    disabled={isSendingOtp}
                     required
                   />
                   <button
@@ -293,31 +375,219 @@ export default function Signup() {
             <button
               type="submit"
               className="btn btn-block"
-              disabled={isSubmitting}
+              disabled={isSendingOtp}
               style={{ marginTop: '20px' }}
             >
-              {isSubmitting ? (
+              {isSendingOtp ? (
                 <>
                   <RefreshCw size={16} className="spin-animation" />
-                  <span>Registering Business...</span>
+                  <span>Sending Verification Code...</span>
                 </>
               ) : (
                 <>
-                  <Briefcase size={16} />
-                  <span>Register Buyer Account</span>
+                  <Mail size={16} />
+                  <span>Verify Gmail & Register</span>
                 </>
               )}
             </button>
           </form>
 
           <div className="auth-footer-text">
-            <span>Already registered your business? </span>
+            <span>Already have a business account? </span>
             <Link to="/login" className="auth-link">
               Sign In
             </Link>
           </div>
         </motion.div>
       </main>
+
+      {/* Step 2: OTP Verification Modal */}
+      {showOtpModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px',
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '460px',
+              width: '100%',
+              padding: '28px 24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e5e7eb',
+              position: 'relative',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowOtpModal(false)}
+              aria-label="Close modal"
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  color: '#16a34a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 12px',
+                }}
+              >
+                <ShieldCheck size={28} />
+              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: '#111827' }}>
+                Verify Your Gmail Address
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                Enter the 6-digit code sent to<br />
+                <strong style={{ color: '#15803d' }}>{formData.email}</strong>
+              </p>
+            </div>
+
+            {modalError && (
+              <div className="alert-box alert-error" role="alert" style={{ marginBottom: '16px' }}>
+                <AlertCircle size={16} className="alert-icon" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            {modalSuccess && (
+              <div
+                className="alert-box alert-success"
+                style={{
+                  marginBottom: '16px',
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                  color: '#166534',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                }}
+              >
+                <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+                <span>{modalSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyAndRegister} noValidate>
+              <div className="form-group">
+                <label htmlFor="signup-otp" className="form-label" style={{ textAlign: 'center', display: 'block' }}>
+                  6-Digit Verification Code
+                </label>
+                <input
+                  id="signup-otp"
+                  type="text"
+                  maxLength={6}
+                  className={`form-input ${modalError ? 'form-input-error' : ''}`}
+                  style={{
+                    letterSpacing: '6px',
+                    fontSize: '1.4rem',
+                    textAlign: 'center',
+                    fontWeight: 700,
+                  }}
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value.replace(/\D/g, ''));
+                    if (modalError) setModalError('');
+                  }}
+                  placeholder="000000"
+                  disabled={isVerifyingOtp}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '8px',
+                  marginBottom: '18px',
+                  fontSize: '0.84rem',
+                  color: 'var(--text-secondary, #6b7280)',
+                }}
+              >
+                <span>Didn't receive the code?</span>
+                <button
+                  type="button"
+                  onClick={handleResendSignupOTP}
+                  disabled={!canResend || isSendingOtp || isVerifyingOtp}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: canResend ? 'var(--forest-600, #15803d)' : '#9ca3af',
+                    cursor: canResend ? 'pointer' : 'not-allowed',
+                    fontWeight: 600,
+                  }}
+                >
+                  {isSendingOtp ? 'Sending...' : canResend ? 'Resend Code' : `Resend in ${resendTimer}s`}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-block"
+                disabled={isVerifyingOtp || otp.length !== 6}
+              >
+                {isVerifyingOtp ? (
+                  <>
+                    <RefreshCw size={16} className="spin-animation" />
+                    <span>Verifying & Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <Briefcase size={16} />
+                    <span>Verify & Complete Registration</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-block"
+                onClick={() => setShowOtpModal(false)}
+                style={{ marginTop: '10px' }}
+                disabled={isVerifyingOtp}
+              >
+                Edit Registration Details
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       <footer className="footer">
         SIH26132 &bull; Buyer Portal &bull; Role Protection Active

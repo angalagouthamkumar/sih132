@@ -18,13 +18,23 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
+      required: function () {
+        return this.authProvider === 'local';
+      },
       trim: true,
-      match: [/^\d{10}$/, 'Phone number must be a valid 10-digit number'],
+      validate: {
+        validator: function (value) {
+          if (!value && this.authProvider === 'google') return true;
+          return /^\d{10}$/.test(value);
+        },
+        message: 'Phone number must be a valid 10-digit number',
+      },
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function () {
+        return this.authProvider === 'local';
+      },
       minlength: [8, 'Password must be at least 8 characters long'],
       select: false,
     },
@@ -35,6 +45,32 @@ const userSchema = new mongoose.Schema(
         values: ['farmer', 'buyer', 'admin'],
         message: '{VALUE} is not a valid role',
       },
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    avatar: {
+      type: String,
+      default: '',
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    resetPasswordOTP: {
+      type: String,
+      select: false,
+    },
+    resetPasswordOTPExpires: {
+      type: Date,
+      select: false,
     },
     location: {
       type: String,
@@ -84,7 +120,7 @@ const userSchema = new mongoose.Schema(
 
 // Pre-save hook: Hash password before saving if modified
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   try {
@@ -98,6 +134,7 @@ userSchema.pre('save', async function (next) {
 
 // Instance method to compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

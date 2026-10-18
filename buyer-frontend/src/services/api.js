@@ -4,7 +4,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,7 +21,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: Normalize timeout, network, and database availability errors
+// Response interceptor: Normalize network and database availability errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -43,19 +42,42 @@ export const getHealthStatus = async () => {
 };
 
 // Auth API methods
+export const sendSignupOTPUser = async (email) => {
+  const response = await api.post('/auth/send-signup-otp', { email });
+  return response.data;
+};
+
 export const registerUser = async (userData) => {
-  const response = await api.post('/auth/register', userData, {
-    timeout: 0, // No fixed timeout on registration to allow server wake-up
-  });
+  const response = await api.post('/auth/register', userData);
   return response.data;
 };
 
 export const loginUser = async (credentials) => {
-  const response = await api.post('/auth/login', credentials, {
-    timeout: 0, // No fixed timeout on login to prevent premature abort
-  });
+  const response = await api.post('/auth/login', credentials);
   return response.data;
 };
+
+export const googleLoginUser = async (googleData) => {
+  const response = await api.post('/auth/google', googleData);
+  return response.data;
+};
+
+export const forgotPasswordUser = async (email) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const verifyOTPUser = async (email, otp) => {
+  const response = await api.post('/auth/verify-otp', { email, otp });
+  return response.data;
+};
+
+export const resetPasswordUser = async (email, otp, newPassword) => {
+  const response = await api.post('/auth/reset-password', { email, otp, newPassword });
+  return response.data;
+};
+
+
 
 export const getCurrentUser = async () => {
   const response = await api.get('/auth/me');

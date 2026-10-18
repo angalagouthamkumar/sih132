@@ -7,6 +7,7 @@ import BuyerLayout from './layouts/BuyerLayout';
 // Auth Pages
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Buyer Portal Pages
 import Dashboard from './pages/Dashboard';
@@ -24,6 +25,7 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Buyer Layout & Routes */}
         <Route

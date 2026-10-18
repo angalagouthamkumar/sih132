@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loginUser, registerUser, getCurrentUser } from '../services/api';
+import { loginUser, registerUser, getCurrentUser, googleLoginUser } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -73,10 +73,10 @@ export const AuthProvider = ({ children, expectedRole = 'farmer' }) => {
     };
   }, [expectedRole]);
 
-  const login = async (email, password, options = {}) => {
+  const login = async (email, password) => {
     setError(null);
     try {
-      const response = await loginUser({ email, password, expectedRole }, options);
+      const response = await loginUser({ email, password, expectedRole });
       const { user: loggedInUser, token: receivedToken } = response.data;
 
       if (loggedInUser.role !== expectedRole) {
@@ -91,12 +91,31 @@ export const AuthProvider = ({ children, expectedRole = 'farmer' }) => {
       setUser(loggedInUser);
       return loggedInUser;
     } catch (err) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
-        const cancelErr = new Error('Authentication request was cancelled.');
-        cancelErr.isCanceled = true;
-        throw cancelErr;
-      }
       const message = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setError(message);
+      throw new Error(message);
+    }
+  };
+
+  const loginWithGoogle = async (idToken) => {
+    setError(null);
+    try {
+      const response = await googleLoginUser({ idToken, expectedRole });
+      const { user: loggedInUser, token: receivedToken } = response.data;
+
+      if (loggedInUser.role !== expectedRole) {
+        const roleError = `Access denied. This portal is for ${expectedRole} accounts only.`;
+        setError(roleError);
+        throw new Error(roleError);
+      }
+
+      localStorage.setItem('token', receivedToken);
+      localStorage.setItem('authUser', JSON.stringify(loggedInUser));
+      setToken(receivedToken);
+      setUser(loggedInUser);
+      return loggedInUser;
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Google login failed. Please try again.';
       setError(message);
       throw new Error(message);
     }
@@ -134,6 +153,7 @@ export const AuthProvider = ({ children, expectedRole = 'farmer' }) => {
     loading,
     error,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUserState: (updatedUser) => setUser((prev) => {

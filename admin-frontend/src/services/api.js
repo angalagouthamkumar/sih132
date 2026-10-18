@@ -4,7 +4,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,7 +21,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: Normalize timeout, network, and database availability errors
+// Response interceptor: Normalize network and database availability errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -43,11 +42,15 @@ export const getHealthStatus = async () => {
 };
 
 export const loginUser = async (credentials) => {
-  const response = await api.post('/auth/login', credentials, {
-    timeout: 0, // No fixed timeout on admin login to allow server wake-up
-  });
+  const response = await api.post('/auth/login', credentials);
   return response.data;
 };
+
+export const googleLoginUser = async (googleData) => {
+  const response = await api.post('/auth/google', googleData);
+  return response.data;
+};
+
 
 export const getCurrentUser = async () => {
   const response = await api.get('/auth/me');

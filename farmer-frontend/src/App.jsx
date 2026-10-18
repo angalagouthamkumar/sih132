@@ -7,6 +7,7 @@ import FarmerLayout from './layouts/FarmerLayout';
 // Auth Pages
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Farmer Portal Pages
 import Dashboard from './pages/Dashboard';
@@ -26,6 +27,7 @@ export default function App() {
         {/* Public Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected Farmer Portal Layout & Routes */}
         <Route
