@@ -358,6 +358,13 @@ export const googleLogin = async (req, res) => {
     const picture = payload.picture || '';
     const emailVerified = !!payload.email_verified;
 
+    if (expectedRole === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin accounts must log in using email and password.',
+      });
+    }
+
     // Find existing user by googleId or email
     let user = await User.findOne({
       $or: [{ googleId: googleSub }, { email: normalizedEmail }],
@@ -368,6 +375,13 @@ export const googleLogin = async (req, res) => {
         return res.status(403).json({
           success: false,
           message: 'Account has been deactivated. Please contact support.',
+        });
+      }
+
+      if (user.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin accounts must log in using email and password.',
         });
       }
 
@@ -401,7 +415,7 @@ export const googleLogin = async (req, res) => {
       if (expectedRole === 'admin') {
         return res.status(403).json({
           success: false,
-          message: 'Admin accounts cannot be self-registered via Google. Please contact support.',
+          message: 'Admin accounts must log in using email and password.',
         });
       }
 

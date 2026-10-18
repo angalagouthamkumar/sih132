@@ -6,15 +6,14 @@ import App from './App.jsx';
 import './index.css';
 import './farmer-theme.css';
 
-const GOOGLE_CLIENT_ID = '1024603054765-hnhanpht65ths19bcovkkgm8d61faq3m.apps.googleusercontent.com';
+const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1024603054765-hnhanpht65ths19bcovkkgm8d61faq3m.apps.googleusercontent.com';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <GoogleOAuthProvider clientId={clientId}>
         <App />
-      </BrowserRouter>
-    </GoogleOAuthProvider>
+      </GoogleOAuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
-
